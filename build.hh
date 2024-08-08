@@ -1,5 +1,5 @@
-// definition
 #pragma once
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
@@ -12,21 +12,17 @@
 #include <unistd.h>
 #include <vector>
 
+// internal use only
 #define TODO1(str) std::cerr << __FILE__ << ":" << __LINE__ << ":TODO -> " << str << std::endl
 #define TODO0() std::cerr << __FILE__ << ":" << __LINE__ << ":TODO" << std::endl
-
 #define GET_MACRO(_0, NAME, ...) NAME
+
 #define TODO(...) GET_MACRO(__VA_ARGS__ __VA_OPT__(, ) TODO1, TODO0)(__VA_ARGS__)
 
 namespace Kitchen
 {
-struct Command {
-	std::string command;
-	std::vector<char*> args;
-	std::vector<std::string> arg_strings;
-};
 
-void start_job(Command command);
+int start_job(std::vector<std::string> command);
 
 enum class Heat;
 
@@ -41,10 +37,10 @@ class Ingredients
 	std::string m_Prefix;
 
   public:
-	Ingredients &prefix(const std::string &prefix);
-	Ingredients &add_source(const std::string &file);
-	Ingredients &glob_source(const std::string &glob);
-	void operator+=(const std::string &file);
+	Ingredients& prefix(const std::string& prefix);
+	Ingredients& add_source(const std::string& file);
+	Ingredients& glob_source(const std::string& glob);
+	void operator+=(const std::string& file);
 	void print_files();
 
 	std::vector<std::string> get_files();
@@ -53,60 +49,70 @@ class Ingredients
 class Recipe
 {
   private:
+	std::string m_Name;
+	std::string m_Output;
 	std::string m_Compiler;
 	std::string m_Optimization_level;
-	std::string m_Output;
+	std::vector<std::string> m_Libs;
 	std::vector<std::string> m_Cflags;
 	std::vector<std::string> m_Ldflags;
-	std::vector<std::string> m_Libs;
 	std::optional<Ingredients> m_Files;
-	bool m_Debug;
-	std::string m_Name;
 
   public:
 	Recipe(std::string name)
-		: m_Compiler(), m_Optimization_level(), m_Cflags(), m_Ldflags(), m_Libs(), m_Files(std::nullopt), m_Debug(),
-		  m_Name(name)
-	{
-	}
+		: m_Name(name), m_Output(), m_Compiler(), m_Optimization_level(), m_Libs(), m_Cflags(), m_Ldflags(),
+		  m_Files(std::nullopt){};
 
-	Recipe &compiler(const std::string &compiler);
-	Recipe &optimization(const Heat &level);
-	Recipe &optimization(const std::string &level);
-	Recipe &output(const std::string &name);
-	Recipe &cflags(const char **flags, size_t flag_count);
-	Recipe &ldflags(const char **flags, size_t flag_count);
-	Recipe &libraries(const char **libraries, size_t library_count);
-	Recipe &files(Ingredients &files);
-	std::string &get_name();
+	std::string& get_name();
 
-	Command get_command();
+	Recipe& files(Ingredients& files);
+	Recipe& output(const std::string& name);
+	Recipe& optimization(const Heat& level);
+	Recipe& optimization(std::string&& level);
+	Recipe& compiler(const std::string& compiler);
+	Recipe& cpp_version(const std::string& version);
+	Recipe& cflags(const char** flags, size_t flag_count);
+	Recipe& ldflags(const char** flags, size_t flag_count);
+	Recipe& libraries(const char** libraries, size_t library_count);
+
+	std::vector<std::string> get_command();
 };
 
 class Chef
 {
   private:
-	size_t m_Defaut_recipe;
+	size_t m_Defaut_recipe_index;
 	std::vector<Recipe> m_Recipes;
 
   public:
-	Chef &default_recipe(const Recipe &recipe);
-	Chef &learn_recipe(const Recipe &recipe);
+	Chef& default_recipe(const Recipe& recipe);
+	Chef& learn_recipe(const Recipe& recipe);
 	void cook();
-	void cook(const std::string &name);
+	void cook(const std::string& name);
 
-	void operator+=(const Recipe &recipe);
+	void operator+=(const Recipe& recipe);
 };
 
-#ifndef _BUILD
-#define _BUILD
+#ifndef GUY_FIERI_BUILD_SYSTEM
+#define GUY_FIERI_BUILD_SYSTEM
 enum class Heat { O0, O1, O2, O3, Ofast, Os, Oz, Og };
 
-inline void start_job(Command command)
+inline int start_job(std::vector<std::string> command)
 {
+	std::vector<char*> c_args{};
+	c_args.reserve(command.size());
+
+	std::cout << "[COMMAND]:";
+	for (auto& arg : command) {
+		std::cout << " " << arg;
+		c_args.push_back(const_cast<char* const>(arg.c_str()));
+	}
+	std::cout << std::endl;
+	c_args.push_back(nullptr);
+
 	pid_t pid = fork();
 	if (pid == 0) {
-		execvp(command.command.c_str(), command.args.data());
+		execvp(command[0].c_str(), c_args.data());
 		std::cerr << "execvp failed to start: " << strerror(errno) << std::endl;
 		exit(errno);
 	} else if (pid > 0) {
@@ -116,27 +122,34 @@ inline void start_job(Command command)
 			std::cerr << "waitpid failed: " << strerror(errno) << std::endl;
 			exit(errno);
 		}
+
+		if (WIFEXITED(status)) {
+			return WEXITSTATUS(status);
+		} else {
+			std::cerr << "Child process did not exit normally" << std::endl;
+			return status;
+		}
 	} else {
 		std::cerr << "Failed to fork: " << strerror(errno) << std::endl;
 		exit(errno);
 	}
 }
 
-inline void Ingredients::operator+=(const std::string &file) { (void)add_source(file); }
+inline void Ingredients::operator+=(const std::string& file) { (void)add_source(file); }
 
-inline Ingredients &Ingredients::prefix(const std::string &prefix)
+inline Ingredients& Ingredients::prefix(const std::string& prefix)
 {
 	m_Prefix = prefix;
 	return *this;
 }
 
-inline Ingredients &Ingredients::glob_source(const std::string &glob)
+inline Ingredients& Ingredients::glob_source(const std::string& glob)
 {
 	TODO("implement globbing");
 	return *this;
 }
 
-inline Ingredients &Ingredients::add_source(const std::string &file)
+inline Ingredients& Ingredients::add_source(const std::string& file)
 {
 	this->m_Files.push_back(file);
 	return *this;
@@ -158,13 +171,13 @@ inline std::vector<std::string> Ingredients::get_files()
 	return ret;
 }
 
-inline Recipe &Recipe::compiler(const std::string &compiler)
+inline Recipe& Recipe::compiler(const std::string& compiler)
 {
 	m_Compiler = compiler;
 	return *this;
 }
 
-inline Recipe &Recipe::optimization(const Heat &level)
+inline Recipe& Recipe::optimization(const Heat& level)
 {
 	switch (level) {
 	case Heat::O0: m_Optimization_level = "-O0"; break;
@@ -179,105 +192,94 @@ inline Recipe &Recipe::optimization(const Heat &level)
 	return *this;
 }
 
-inline Recipe &Recipe::optimization(const std::string &level)
+inline Recipe& Recipe::optimization(std::string&& level)
 {
-	std::string _level;
-	if (level.find("-") == 0)
-		_level = level;
-	else
-		_level = "-" + level;
+	if (level.find("-") != 0)
+		level = "-" + level;
 
-	m_Optimization_level = _level;
+	m_Optimization_level = level;
 	return *this;
 }
 
-inline Recipe &Recipe::cflags(const char **flags, size_t flag_count)
+inline Recipe& Recipe::cflags(const char** flags, size_t flag_count)
 {
 	for (size_t i = 0; i < flag_count; ++i)
 		m_Cflags.push_back(flags[i]);
 	return *this;
 }
 
-inline Recipe &Recipe::ldflags(const char **flags, size_t flag_count)
+inline Recipe& Recipe::ldflags(const char** flags, size_t flag_count)
 {
 	for (size_t i = 0; i < flag_count; ++i)
 		m_Ldflags.push_back(flags[i]);
 	return *this;
 }
 
-inline Recipe &Recipe::libraries(const char **libraries, size_t library_count)
+inline Recipe& Recipe::libraries(const char** libraries, size_t library_count)
 {
 	for (size_t i = 0; i < library_count; ++i)
 		m_Libs.push_back(libraries[i]);
 	return *this;
 }
 
-inline Recipe &Recipe::output(const std::string &name)
+inline Recipe& Recipe::output(const std::string& name)
 {
 	m_Output = name;
 	return *this;
 }
 
-inline Command Recipe::get_command()
+inline std::vector<std::string> Recipe::get_command()
 {
-	assert(m_Compiler != "" && "ERROR: compiler is REQUIRED to COMPILE...\n");
-	assert(m_Files.has_value() && "ERROR: you need to provide files to compile");
+	assert((m_Compiler != "" && "ERROR: compiler is REQUIRED to COMPILE...\n"));
+	assert((m_Files.has_value() && "ERROR: you need to provide files to compile"));
 
-	Command command;
-	command.command = m_Compiler;
+	std::vector<std::string> command = {m_Compiler};
 
-	command.arg_strings.push_back(m_Compiler);
-
-	for (auto &cflag : m_Cflags)
-		command.arg_strings.push_back(cflag.c_str());
+	for (const auto& cflag : m_Cflags)
+		command.push_back(cflag);
 
 	if (m_Optimization_level != "")
-		command.arg_strings.push_back(m_Optimization_level.c_str());
+		command.push_back(m_Optimization_level);
 
-	for (auto &library : m_Libs)
-		command.arg_strings.push_back(("-l" + library).c_str());
+	for (const auto& library : m_Libs)
+		command.push_back("-l" + library);
 
 	if (m_Output != "") {
-		command.arg_strings.push_back(("-o"));
-		command.arg_strings.push_back(m_Output.c_str());
+		command.push_back("-o");
+		command.push_back(m_Output);
 	}
 
-	for (auto &file : m_Files->get_files())
-		command.arg_strings.push_back(file.c_str());
+	for (const auto& file : m_Files->get_files())
+		command.push_back(file);
 
-	for (auto &ldflag : m_Ldflags)
-		command.arg_strings.push_back(ldflag.c_str());
-
-	for (auto &arg : command.arg_strings)
-		command.args.push_back(arg.data());
-
-	command.args.push_back(nullptr);
+	for (const auto& ldflag : m_Ldflags)
+		command.push_back(ldflag);
 
 	return command;
 }
 
-inline Recipe &Recipe::files(Ingredients &files)
+inline Recipe& Recipe::files(Ingredients& files)
 {
 	m_Files = files;
 	return *this;
 }
 
-inline std::string &Recipe::get_name() { return m_Name; }
+inline std::string& Recipe::get_name() { return m_Name; }
 
-inline Chef &Chef::default_recipe(const Recipe &recipe)
+inline Chef& Chef::default_recipe(const Recipe& recipe)
 {
-	m_Defaut_recipe = m_Recipes.size();
+	m_Defaut_recipe_index = m_Recipes.size();
 	m_Recipes.push_back(recipe);
 	return *this;
 }
 
-inline Chef &Chef::learn_recipe(const Recipe &recipe)
+inline Chef& Chef::learn_recipe(const Recipe& recipe)
 {
 	m_Recipes.push_back(recipe);
 	return *this;
 }
 
-inline void Chef::operator+=(const Recipe &recipe)
+inline void Chef::operator+=(const Recipe& recipe)
 {
 	if (m_Recipes.size() == 0)
 		default_recipe(recipe);
@@ -285,22 +287,17 @@ inline void Chef::operator+=(const Recipe &recipe)
 		learn_recipe(recipe);
 }
 
-inline void Chef::cook()
+inline void Chef::cook() { exit(start_job(m_Recipes[m_Defaut_recipe_index].get_command())); }
+
+inline void Chef::cook(const std::string& recipe_name)
 {
-	start_job(m_Recipes[m_Defaut_recipe].get_command());
+	assert((recipe_name != "" && "recipe_name cannot be empty"));
+
+	auto recipe = std::find_if(m_Recipes.begin(), m_Recipes.end(),
+							   [recipe_name](auto& recipe) { return recipe.get_name() == recipe_name; });
+
+	start_job(recipe[0].get_command());
 }
 
-inline void Chef::cook(const std::string &recipe_name)
-{
-	if (recipe_name == "")
-		cook();
-
-	for (auto recipe : m_Recipes)
-		if (recipe.get_name() == recipe_name) {
-			start_job(recipe.get_command());
-			break;
-		}
-}
-
-#endif // _BUILD
+#endif // GUY_FIERI_BUILD_SYSTEM
 } // namespace Kitchen
