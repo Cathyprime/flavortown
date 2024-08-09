@@ -6,18 +6,21 @@ int main(int argc, char** argv)
 {
 	Kitchen::Ingredients source_files{};
 
-	const char* cflags[] = {"-Wall"};
+	Kitchen::Ingredients cflags{};
+	cflags.prefix("-W");
+	cflags += "all";
+	cflags += "error";
 
 	source_files += "build.cpp";
 
-	auto debug = Kitchen::Recipe("debug").compiler(CC).files(source_files).output("TEST_OUTPUT");
+	auto debug = Kitchen::CppRecipe("debug").compiler(CC).files(source_files).output("TEST_OUTPUT");
 
-	auto release = Kitchen::Recipe("release")
+	auto release = Kitchen::CppRecipe("release")
 					   .compiler(CC)
 					   .files(source_files)
 					   .optimization(Kitchen::Heat::O2)
 					   .output("release")
-					   .cflags(cflags, sizeof(cflags) / sizeof(cflags[0]));
+					   .cflags(cflags);
 
 	Kitchen::Chef chef{};
 
@@ -28,5 +31,4 @@ int main(int argc, char** argv)
 		chef.cook("release");
 	else
 		chef.cook();
-
 }

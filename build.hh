@@ -22,12 +22,12 @@
 namespace Kitchen
 {
 
-int start_job(std::vector<std::string> command);
+int start_job_sync(std::vector<std::string> command);
 
 enum class Heat;
 
 class Chef;
-class Recipe;
+class CppRecipe;
 class Ingredients;
 
 class Ingredients
@@ -38,15 +38,14 @@ class Ingredients
 
   public:
 	Ingredients& prefix(const std::string& prefix);
-	Ingredients& add_source(const std::string& file);
-	Ingredients& glob_source(const std::string& glob);
+	Ingredients& add_ingredients(const std::string& file);
+	// Ingredients& glob_source(const std::string& glob);
 	void operator+=(const std::string& file);
-	void print_files();
 
-	std::vector<std::string> get_files();
+	std::vector<std::string> get_ingredients();
 };
 
-class Recipe
+class CppRecipe
 {
   private:
 	std::string m_Name;
@@ -59,21 +58,24 @@ class Recipe
 	std::optional<Ingredients> m_Files;
 
   public:
-	Recipe(std::string name)
+	CppRecipe(std::string name)
 		: m_Name(name), m_Output(), m_Compiler(), m_Optimization_level(), m_Libs(), m_Cflags(), m_Ldflags(),
 		  m_Files(std::nullopt){};
 
-	std::string& get_name();
+	const std::string& get_name();
 
-	Recipe& files(Ingredients& files);
-	Recipe& output(const std::string& name);
-	Recipe& optimization(const Heat& level);
-	Recipe& optimization(std::string&& level);
-	Recipe& compiler(const std::string& compiler);
-	Recipe& cpp_version(const std::string& version);
-	Recipe& cflags(const char** flags, size_t flag_count);
-	Recipe& ldflags(const char** flags, size_t flag_count);
-	Recipe& libraries(const char** libraries, size_t library_count);
+	CppRecipe& files(const Ingredients& files);
+	CppRecipe& output(const std::string& name);
+	CppRecipe& optimization(const Heat& level);
+	CppRecipe& optimization(std::string&& level);
+	CppRecipe& compiler(const std::string& compiler);
+	CppRecipe& cpp_version(const std::string& version);
+	CppRecipe& cflags(Ingredients& cflags);
+	CppRecipe& cflags(Ingredients&& cflags);
+	CppRecipe& ldflags(Ingredients& ldflags);
+	CppRecipe& ldflags(Ingredients&& ldflags);
+	CppRecipe& libraries(Ingredients& libraries);
+	CppRecipe& libraries(Ingredients&& libraries);
 
 	std::vector<std::string> get_command();
 };
@@ -82,22 +84,22 @@ class Chef
 {
   private:
 	size_t m_Defaut_recipe_index;
-	std::vector<Recipe> m_Recipes;
+	std::vector<CppRecipe> m_Recipes;
 
   public:
-	Chef& default_recipe(const Recipe& recipe);
-	Chef& learn_recipe(const Recipe& recipe);
+	Chef& default_recipe(const CppRecipe& recipe);
+	Chef& learn_recipe(const CppRecipe& recipe);
 	void cook();
 	void cook(const std::string& name);
 
-	void operator+=(const Recipe& recipe);
+	void operator+=(const CppRecipe& recipe);
 };
 
 #ifndef GUY_FIERI_BUILD_SYSTEM
 #define GUY_FIERI_BUILD_SYSTEM
 enum class Heat { O0, O1, O2, O3, Ofast, Os, Oz, Og };
 
-inline int start_job(std::vector<std::string> command)
+inline int start_job_sync(std::vector<std::string> command)
 {
 	std::vector<char*> c_args{};
 	c_args.reserve(command.size());
@@ -135,7 +137,7 @@ inline int start_job(std::vector<std::string> command)
 	}
 }
 
-inline void Ingredients::operator+=(const std::string& file) { (void)add_source(file); }
+inline void Ingredients::operator+=(const std::string& file) { (void)add_ingredients(file); }
 
 inline Ingredients& Ingredients::prefix(const std::string& prefix)
 {
@@ -143,19 +145,13 @@ inline Ingredients& Ingredients::prefix(const std::string& prefix)
 	return *this;
 }
 
-inline Ingredients& Ingredients::glob_source(const std::string& glob)
-{
-	TODO("implement globbing");
-	return *this;
-}
-
-inline Ingredients& Ingredients::add_source(const std::string& file)
+inline Ingredients& Ingredients::add_ingredients(const std::string& file)
 {
 	this->m_Files.push_back(file);
 	return *this;
 }
 
-inline std::vector<std::string> Ingredients::get_files()
+inline std::vector<std::string> Ingredients::get_ingredients()
 {
 	std::vector<std::string> ret;
 
@@ -171,13 +167,13 @@ inline std::vector<std::string> Ingredients::get_files()
 	return ret;
 }
 
-inline Recipe& Recipe::compiler(const std::string& compiler)
+inline CppRecipe& CppRecipe::compiler(const std::string& compiler)
 {
 	m_Compiler = compiler;
 	return *this;
 }
 
-inline Recipe& Recipe::optimization(const Heat& level)
+inline CppRecipe& CppRecipe::optimization(const Heat& level)
 {
 	switch (level) {
 	case Heat::O0: m_Optimization_level = "-O0"; break;
@@ -192,7 +188,7 @@ inline Recipe& Recipe::optimization(const Heat& level)
 	return *this;
 }
 
-inline Recipe& Recipe::optimization(std::string&& level)
+inline CppRecipe& CppRecipe::optimization(std::string&& level)
 {
 	if (level.find("-") != 0)
 		level = "-" + level;
@@ -201,34 +197,49 @@ inline Recipe& Recipe::optimization(std::string&& level)
 	return *this;
 }
 
-inline Recipe& Recipe::cflags(const char** flags, size_t flag_count)
+inline CppRecipe& CppRecipe::cflags(Ingredients& cflags)
 {
-	for (size_t i = 0; i < flag_count; ++i)
-		m_Cflags.push_back(flags[i]);
+	m_Cflags = cflags.get_ingredients();
 	return *this;
 }
 
-inline Recipe& Recipe::ldflags(const char** flags, size_t flag_count)
+inline CppRecipe& CppRecipe::cflags(Ingredients&& cflags)
 {
-	for (size_t i = 0; i < flag_count; ++i)
-		m_Ldflags.push_back(flags[i]);
+	m_Cflags = cflags.get_ingredients();
 	return *this;
 }
 
-inline Recipe& Recipe::libraries(const char** libraries, size_t library_count)
+inline CppRecipe& CppRecipe::ldflags(Ingredients& flags)
 {
-	for (size_t i = 0; i < library_count; ++i)
-		m_Libs.push_back(libraries[i]);
+	m_Ldflags = flags.get_ingredients();
 	return *this;
 }
 
-inline Recipe& Recipe::output(const std::string& name)
+inline CppRecipe& CppRecipe::ldflags(Ingredients&& flags)
+{
+	m_Ldflags = flags.get_ingredients();
+	return *this;
+}
+
+inline CppRecipe& CppRecipe::libraries(Ingredients& libraries)
+{
+	m_Libs = libraries.get_ingredients();
+	return *this;
+}
+
+inline CppRecipe& CppRecipe::libraries(Ingredients&& libraries)
+{
+	m_Libs = libraries.get_ingredients();
+	return *this;
+}
+
+inline CppRecipe& CppRecipe::output(const std::string& name)
 {
 	m_Output = name;
 	return *this;
 }
 
-inline std::vector<std::string> Recipe::get_command()
+inline std::vector<std::string> CppRecipe::get_command()
 {
 	assert((m_Compiler != "" && "ERROR: compiler is REQUIRED to COMPILE...\n"));
 	assert((m_Files.has_value() && "ERROR: you need to provide files to compile"));
@@ -249,7 +260,7 @@ inline std::vector<std::string> Recipe::get_command()
 		command.push_back(m_Output);
 	}
 
-	for (const auto& file : m_Files->get_files())
+	for (const auto& file : m_Files->get_ingredients())
 		command.push_back(file);
 
 	for (const auto& ldflag : m_Ldflags)
@@ -258,28 +269,28 @@ inline std::vector<std::string> Recipe::get_command()
 	return command;
 }
 
-inline Recipe& Recipe::files(Ingredients& files)
+inline CppRecipe& CppRecipe::files(const Ingredients& files)
 {
 	m_Files = files;
 	return *this;
 }
 
-inline std::string& Recipe::get_name() { return m_Name; }
+inline const std::string& CppRecipe::get_name() { return m_Name; }
 
-inline Chef& Chef::default_recipe(const Recipe& recipe)
+inline Chef& Chef::default_recipe(const CppRecipe& recipe)
 {
 	m_Defaut_recipe_index = m_Recipes.size();
 	m_Recipes.push_back(recipe);
 	return *this;
 }
 
-inline Chef& Chef::learn_recipe(const Recipe& recipe)
+inline Chef& Chef::learn_recipe(const CppRecipe& recipe)
 {
 	m_Recipes.push_back(recipe);
 	return *this;
 }
 
-inline void Chef::operator+=(const Recipe& recipe)
+inline void Chef::operator+=(const CppRecipe& recipe)
 {
 	if (m_Recipes.size() == 0)
 		default_recipe(recipe);
@@ -287,7 +298,7 @@ inline void Chef::operator+=(const Recipe& recipe)
 		learn_recipe(recipe);
 }
 
-inline void Chef::cook() { exit(start_job(m_Recipes[m_Defaut_recipe_index].get_command())); }
+inline void Chef::cook() { exit(start_job_sync(m_Recipes[m_Defaut_recipe_index].get_command())); }
 
 inline void Chef::cook(const std::string& recipe_name)
 {
@@ -296,7 +307,7 @@ inline void Chef::cook(const std::string& recipe_name)
 	auto recipe = std::find_if(m_Recipes.begin(), m_Recipes.end(),
 							   [recipe_name](auto& recipe) { return recipe.get_name() == recipe_name; });
 
-	start_job(recipe[0].get_command());
+	start_job_sync(recipe[0].get_command());
 }
 
 #endif // GUY_FIERI_BUILD_SYSTEM
