@@ -7,9 +7,8 @@ int main(int argc, char** argv)
 	Kitchen::Ingredients source_files{};
 
 	Kitchen::Ingredients cflags{};
-	cflags.prefix("-W");
-	cflags += "all";
-	cflags += "error";
+	cflags += "-Wall";
+	cflags += "-Werror";
 
 	source_files += "build.cpp";
 
@@ -19,6 +18,7 @@ int main(int argc, char** argv)
 					   .compiler(CC)
 					   .files(source_files)
 					   .optimization(Kitchen::Heat::O2)
+					   .cpp_version("c++23")
 					   .output("release")
 					   .cflags(cflags);
 

@@ -50,6 +50,7 @@ class CppRecipe
   private:
 	std::string m_Name;
 	std::string m_Output;
+	std::string m_Version;
 	std::string m_Compiler;
 	std::string m_Optimization_level;
 	std::vector<std::string> m_Libs;
@@ -59,7 +60,7 @@ class CppRecipe
 
   public:
 	CppRecipe(std::string name)
-		: m_Name(name), m_Output(), m_Compiler(), m_Optimization_level(), m_Libs(), m_Cflags(), m_Ldflags(),
+		: m_Name(name), m_Output(), m_Version(), m_Compiler(), m_Optimization_level(), m_Libs(), m_Cflags(), m_Ldflags(),
 		  m_Files(std::nullopt){};
 
 	const std::string& get_name();
@@ -173,6 +174,12 @@ inline CppRecipe& CppRecipe::compiler(const std::string& compiler)
 	return *this;
 }
 
+inline CppRecipe& CppRecipe::cpp_version(const std::string& version)
+{
+	m_Version = version;
+	return *this;
+}
+
 inline CppRecipe& CppRecipe::optimization(const Heat& level)
 {
 	switch (level) {
@@ -248,6 +255,9 @@ inline std::vector<std::string> CppRecipe::get_command()
 
 	for (const auto& cflag : m_Cflags)
 		command.push_back(cflag);
+
+	if (m_Version != "")
+		command.push_back("-std="+m_Version);
 
 	if (m_Optimization_level != "")
 		command.push_back(m_Optimization_level);
