@@ -42,20 +42,20 @@ int main(int argc, char** argv)
 	combined_files += "build_dir/fibonacci1.o";
 	combined_files += "build_dir/fibonacci2.o";
 	combined_files += "build_dir/fibonacci3.o";
-	combined_files += "fibonacci_combined.cpp";
+	combined_files += "fibonacci_src/fibonacci_combined.cpp";
 
 	auto combined_fib = Kitchen::CppRecipe("combined_fib").compiler(CC).files(combined_files).output("bin/fib");
 
 	Kitchen::Chef chef{};
 	Kitchen::LineCook line_cook{};
 
-	chef += debug;
-	chef += release;
-	chef += combined_fib;
+	chef += &debug;
+	chef += &release;
+	chef += &combined_fib;
 
-	line_cook += fib1;
-	line_cook += fib2;
-	line_cook += fib3;
+	line_cook += &fib1;
+	line_cook += &fib2;
+	line_cook += &fib3;
 
 	if (argc > 1 && argv[1] == std::string("combined_fib")) {
 		line_cook.cook();

@@ -50,8 +50,15 @@ void print_command(std::vector<std::string>& command);
 
 enum class Heat;
 
+class Recipe
+{
+  public:
+	virtual ~Recipe(){};
+	virtual std::vector<std::string> get_command() = 0;
+	virtual const std::string& get_name() = 0;
+};
+
 class Chef;
-class CppRecipe;
 class Ingredients;
 
 class Ingredients
@@ -63,13 +70,13 @@ class Ingredients
   public:
 	Ingredients& prefix(const std::string& prefix);
 	Ingredients& add_ingredients(const std::string& file);
-	// Ingredients& glob_source(const std::string& glob);
+	// TODO: Ingredients& glob_source(const std::string& glob);
 	void operator+=(const std::string& file);
 
 	std::vector<std::string> get_ingredients();
 };
 
-class CppRecipe
+class CppRecipe : public Recipe
 {
   private:
 	std::string m_Name;
@@ -87,7 +94,7 @@ class CppRecipe
 		: m_Name(name), m_Output(), m_Version(), m_Compiler(), m_Optimization_level(), m_Libs(), m_Cflags(),
 		  m_Ldflags(), m_Files(std::nullopt){};
 
-	const std::string& get_name();
+	const std::string& get_name() override;
 
 	CppRecipe& files(const Ingredients& files);
 	CppRecipe& output(const std::string& name);
@@ -102,42 +109,40 @@ class CppRecipe
 	CppRecipe& libraries(Ingredients& libraries);
 	CppRecipe& libraries(Ingredients&& libraries);
 
-	std::vector<std::string> get_command();
+	std::vector<std::string> get_command() override;
 };
 
 class Chef
 {
   private:
 	size_t m_Defaut_recipe_index;
-	std::vector<CppRecipe> m_Recipes;
+	std::vector<Recipe*> m_Recipes;
 
   public:
-	Chef& default_recipe(const CppRecipe& recipe);
-	Chef& learn_recipe(const CppRecipe& recipe);
+	Chef& default_recipe(Recipe* recipe);
+	Chef& learn_recipe(Recipe* recipe);
 	int cook();
 	int cook(const std::string& name);
 	void dessert();
 	void dessert(const std::string& name);
 
-	void operator+=(const CppRecipe& recipe);
+	void operator+=(Recipe* recipe);
 };
 
 class LineCook : public Chef
 {
   private:
-	std::vector<CppRecipe> m_Recipes;
+	std::vector<Recipe*> m_Recipes;
 
   public:
-	LineCook& learn_recipe(const CppRecipe& recipe);
+	LineCook& learn_recipe(Recipe* recipe);
 	int cook();
 	int cook(const std::string& name);
 	void dessert();
 	void dessert(const std::string& name);
-	void operator+=(const CppRecipe& recipe);
+	void operator+=(Recipe* recipe);
 };
 
-#ifndef GUY_FIERI_BUILD_SYSTEM
-#define GUY_FIERI_BUILD_SYSTEM
 enum class Heat { O0, O1, O2, O3, Ofast, Os, Oz, Og };
 
 inline int start_job_sync(std::vector<std::string> command)
@@ -256,20 +261,20 @@ inline std::vector<std::string> CppRecipe::get_command()
 
 inline const std::string& CppRecipe::get_name() { return m_Name; }
 
-inline Chef& Chef::default_recipe(const CppRecipe& recipe)
+inline Chef& Chef::default_recipe(Recipe* recipe)
 {
 	m_Defaut_recipe_index = m_Recipes.size();
 	m_Recipes.push_back(recipe);
 	return *this;
 }
 
-inline Chef& Chef::learn_recipe(const CppRecipe& value)
+inline Chef& Chef::learn_recipe(Recipe* value)
 {
 	m_Recipes.push_back(value);
 	return *this;
 }
 
-inline void Chef::operator+=(const CppRecipe& recipe)
+inline void Chef::operator+=(Recipe* recipe)
 {
 	if (m_Recipes.size() == 0)
 		default_recipe(recipe);
@@ -279,40 +284,34 @@ inline void Chef::operator+=(const CppRecipe& recipe)
 
 inline int Chef::cook()
 {
-	auto command = m_Recipes[m_Defaut_recipe_index].get_command();
+	auto command = m_Recipes[m_Defaut_recipe_index]->get_command();
 	print_command(command);
 	return start_job_sync(std::move(command));
 }
 
-inline void Chef::dessert()
-{
-	std::exit(cook());
-}
+inline void Chef::dessert() { std::exit(cook()); }
 
 inline int Chef::cook(const std::string& recipe_name)
 {
 	assert((recipe_name != "" && "recipe_name cannot be empty"));
 
 	auto recipe = std::find_if(m_Recipes.begin(), m_Recipes.end(),
-							   [recipe_name](auto& recipe) { return recipe.get_name() == recipe_name; });
+							   [recipe_name](auto& recipe) { return recipe->get_name() == recipe_name; });
 
-	auto command = recipe[0].get_command();
+	auto command = recipe[0]->get_command();
 	print_command(command);
 	return start_job_sync(command);
 }
 
-inline void Chef::dessert(const std::string& recipe_name)
-{
-	std::exit(cook(recipe_name));
-}
+inline void Chef::dessert(const std::string& recipe_name) { std::exit(cook(recipe_name)); }
 
-inline LineCook& LineCook::learn_recipe(const CppRecipe& recipe)
+inline LineCook& LineCook::learn_recipe(Recipe* recipe)
 {
 	m_Recipes.push_back(recipe);
 	return *this;
 }
 
-inline void LineCook::operator+=(const CppRecipe& recipe) { learn_recipe(std::move(recipe)); }
+inline void LineCook::operator+=(Recipe* recipe) { learn_recipe(std::move(recipe)); }
 
 inline int LineCook::cook(const std::string& name)
 {
@@ -326,10 +325,7 @@ inline void LineCook::dessert(const std::string& name)
 	std::exit(cook());
 }
 
-inline void LineCook::dessert()
-{
-	std::exit(cook());
-}
+inline void LineCook::dessert() { std::exit(cook()); }
 
 inline int LineCook::cook()
 {
@@ -337,7 +333,7 @@ inline int LineCook::cook()
 	std::atomic<int> error(0);
 
 	for (auto& recipe : m_Recipes) {
-		auto command = recipe.get_command();
+		auto command = recipe->get_command();
 		print_command(command);
 		threads.push_back(std::thread([command, &error]() {
 			if (error.load() != 0)
@@ -359,5 +355,4 @@ inline int LineCook::cook()
 	return status;
 }
 
-#endif // GUY_FIERI_BUILD_SYSTEM
 } // namespace Kitchen
