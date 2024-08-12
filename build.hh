@@ -3,18 +3,16 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <numeric>
 #include <optional>
 #include <string>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <thread>
-#include <unistd.h>
 #include <vector>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 // internal use only
 #define __TODO(str) std::cerr << __FILE__ << ":" << __LINE__ << ":TODO -> " << str << std::endl
@@ -45,8 +43,8 @@
 namespace Kitchen
 {
 
-int start_job_sync(std::vector<std::string> command);
-void print_command(std::vector<std::string>& command);
+int start_job_sync(const std::vector<std::string>& command);
+void print_command(const std::vector<std::string>& command);
 
 enum class Heat;
 
@@ -145,7 +143,8 @@ class LineCook : public Chef
 
 enum class Heat { O0, O1, O2, O3, Ofast, Os, Oz, Og };
 
-inline int start_job_sync(std::vector<std::string> command)
+inline int start_job_sync(const std::vector<std::string>& command)
+#ifndef _WIN32
 {
 	int result = std::system(
 		std::accumulate(std::next(command.begin()), command.end(), command[0], [](std::string a, std::string b) {
@@ -159,6 +158,50 @@ inline int start_job_sync(std::vector<std::string> command)
 
 	return result;
 }
+#else
+{
+	// Combine command vector into a single string
+	std::string full_command = std::accumulate(std::next(command.begin()), command.end(), command[0],
+											   [](const std::string& a, const std::string& b) { return a + " " + b; });
+
+	// Convert command to wide string
+	std::wstring w_command(full_command.begin(), full_command.end());
+
+	// Create process information and startup info structures
+	STARTUPINFOW startup_info = {sizeof(startup_info)};
+	PROCESS_INFORMATION process_info;
+
+	// Create a new process
+	if (!CreateProcessW(NULL,		   // Application name
+						&w_command[0], // Command line
+						NULL,		   // Process security attributes
+						NULL,		   // Thread security attributes
+						FALSE,		   // Inherit handles
+						0,			   // Creation flags
+						NULL,		   // Environment
+						NULL,		   // Current directory
+						&startup_info, // Startup info
+						&process_info  // Process information
+						)) {
+		return GetLastError(); // Return error code if CreateProcessW fails
+	}
+
+	// Wait for the process to exit
+	WaitForSingleObject(process_info.hProcess, INFINITE);
+
+	// Get the exit code of the process
+	DWORD exit_code;
+	if (!GetExitCodeProcess(process_info.hProcess, &exit_code)) {
+		exit_code = GetLastError(); // Return error code if GetExitCodeProcess fails
+	}
+
+	// Clean up process handles
+	CloseHandle(process_info.hProcess);
+	CloseHandle(process_info.hThread);
+
+	return static_cast<int>(exit_code);
+}
+#endif // _WIN32
 
 inline void print_command(std::vector<std::string>& command)
 {
