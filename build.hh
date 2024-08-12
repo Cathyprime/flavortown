@@ -1,24 +1,27 @@
 #pragma once
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <thread>
 #include <unistd.h>
 #include <vector>
 
 // internal use only
-#define TODO1(str) std::cerr << __FILE__ << ":" << __LINE__ << ":TODO -> " << str << std::endl
-#define TODO0() std::cerr << __FILE__ << ":" << __LINE__ << ":TODO" << std::endl
+#define __TODO(str) std::cerr << __FILE__ << ":" << __LINE__ << ":TODO -> " << str << std::endl
+#define ___TODO() std::cerr << __FILE__ << ":" << __LINE__ << ":TODO" << std::endl
 #define GET_MACRO(_0, NAME, ...) NAME
 
-#define TODO(...) GET_MACRO(__VA_ARGS__ __VA_OPT__(, ) TODO1, TODO0)(__VA_ARGS__)
+#define TODO(...) GET_MACRO(__VA_ARGS__ __VA_OPT__(, ) __TODO, ___TODO)(__VA_ARGS__)
 
 #define INGREDIENTS_SETTER(method_name, member_variable)                                                               \
 	inline CppRecipe& CppRecipe::method_name(Ingredients& value)                                                       \
@@ -43,6 +46,7 @@ namespace Kitchen
 {
 
 int start_job_sync(std::vector<std::string> command);
+void print_command(std::vector<std::string>& command);
 
 enum class Heat;
 
@@ -110,9 +114,25 @@ class Chef
   public:
 	Chef& default_recipe(const CppRecipe& recipe);
 	Chef& learn_recipe(const CppRecipe& recipe);
-	void cook();
-	void cook(const std::string& name);
+	int cook();
+	int cook(const std::string& name);
+	void dessert();
+	void dessert(const std::string& name);
 
+	void operator+=(const CppRecipe& recipe);
+};
+
+class LineCook : public Chef
+{
+  private:
+	std::vector<CppRecipe> m_Recipes;
+
+  public:
+	LineCook& learn_recipe(const CppRecipe& recipe);
+	int cook();
+	int cook(const std::string& name);
+	void dessert();
+	void dessert(const std::string& name);
 	void operator+=(const CppRecipe& recipe);
 };
 
@@ -122,40 +142,25 @@ enum class Heat { O0, O1, O2, O3, Ofast, Os, Oz, Og };
 
 inline int start_job_sync(std::vector<std::string> command)
 {
-	std::vector<char*> c_args{};
-	c_args.reserve(command.size());
+	int result = std::system(
+		std::accumulate(std::next(command.begin()), command.end(), command[0], [](std::string a, std::string b) {
+			return a + " " + b;
+		}).c_str());
 
+	if (WIFEXITED(result)) {
+		int exit_status = WEXITSTATUS(result);
+		return exit_status;
+	}
+
+	return result;
+}
+
+inline void print_command(std::vector<std::string>& command)
+{
 	std::cout << "[COMMAND]:";
-	for (auto& arg : command) {
-		std::cout << " " << arg;
-		c_args.push_back(const_cast<char* const>(arg.c_str()));
-	}
+	for (const auto& c : command)
+		std::cout << " " << c;
 	std::cout << std::endl;
-	c_args.push_back(nullptr);
-
-	pid_t pid = fork();
-	if (pid == 0) {
-		execvp(command[0].c_str(), c_args.data());
-		std::cerr << "execvp failed to start: " << strerror(errno) << std::endl;
-		exit(errno);
-	} else if (pid > 0) {
-		int status;
-
-		if (waitpid(pid, &status, 0) == -1) {
-			std::cerr << "waitpid failed: " << strerror(errno) << std::endl;
-			exit(errno);
-		}
-
-		if (WIFEXITED(status)) {
-			return WEXITSTATUS(status);
-		} else {
-			std::cerr << "Child process did not exit normally" << std::endl;
-			return status;
-		}
-	} else {
-		std::cerr << "Failed to fork: " << strerror(errno) << std::endl;
-		exit(errno);
-	}
 }
 
 inline void Ingredients::operator+=(const std::string& file) { (void)add_ingredients(file); }
@@ -272,16 +277,86 @@ inline void Chef::operator+=(const CppRecipe& recipe)
 		learn_recipe(recipe);
 }
 
-inline void Chef::cook() { exit(start_job_sync(m_Recipes[m_Defaut_recipe_index].get_command())); }
+inline int Chef::cook()
+{
+	auto command = m_Recipes[m_Defaut_recipe_index].get_command();
+	print_command(command);
+	return start_job_sync(std::move(command));
+}
 
-inline void Chef::cook(const std::string& recipe_name)
+inline void Chef::dessert()
+{
+	std::exit(cook());
+}
+
+inline int Chef::cook(const std::string& recipe_name)
 {
 	assert((recipe_name != "" && "recipe_name cannot be empty"));
 
 	auto recipe = std::find_if(m_Recipes.begin(), m_Recipes.end(),
 							   [recipe_name](auto& recipe) { return recipe.get_name() == recipe_name; });
 
-	start_job_sync(recipe[0].get_command());
+	auto command = recipe[0].get_command();
+	print_command(command);
+	return start_job_sync(command);
+}
+
+inline void Chef::dessert(const std::string& recipe_name)
+{
+	std::exit(cook(recipe_name));
+}
+
+inline LineCook& LineCook::learn_recipe(const CppRecipe& recipe)
+{
+	m_Recipes.push_back(recipe);
+	return *this;
+}
+
+inline void LineCook::operator+=(const CppRecipe& recipe) { learn_recipe(std::move(recipe)); }
+
+inline int LineCook::cook(const std::string& name)
+{
+	(void)name;
+	return cook();
+}
+
+inline void LineCook::dessert(const std::string& name)
+{
+	(void)name;
+	std::exit(cook());
+}
+
+inline void LineCook::dessert()
+{
+	std::exit(cook());
+}
+
+inline int LineCook::cook()
+{
+	std::vector<std::thread> threads;
+	std::atomic<int> error(0);
+
+	for (auto& recipe : m_Recipes) {
+		auto command = recipe.get_command();
+		print_command(command);
+		threads.push_back(std::thread([command, &error]() {
+			if (error.load() != 0)
+				return;
+
+			int status = start_job_sync(command);
+
+			if (status != 0) {
+				std::cerr << "Thread exited with error status: " << status << std::endl;
+				error.store(status);
+			}
+		}));
+	}
+
+	for (auto& thread : threads)
+		thread.join();
+
+	int status = error.load();
+	return status;
 }
 
 #endif // GUY_FIERI_BUILD_SYSTEM
