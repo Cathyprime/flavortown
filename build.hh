@@ -1,4 +1,5 @@
 #pragma once
+
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -18,6 +19,25 @@
 #define GET_MACRO(_0, NAME, ...) NAME
 
 #define TODO(...) GET_MACRO(__VA_ARGS__ __VA_OPT__(, ) TODO1, TODO0)(__VA_ARGS__)
+
+#define INGREDIENTS_SETTER(method_name, member_variable)                                                               \
+	inline CppRecipe& CppRecipe::method_name(Ingredients& value)                                                       \
+	{                                                                                                                  \
+		member_variable = value.get_ingredients();                                                                     \
+		return *this;                                                                                                  \
+	}                                                                                                                  \
+	inline CppRecipe& CppRecipe::method_name(Ingredients&& value)                                                      \
+	{                                                                                                                  \
+		member_variable = value.get_ingredients();                                                                     \
+		return *this;                                                                                                  \
+	}
+
+#define SETTER(class, method_name, type, member_variable)                                                              \
+	inline class& class ::method_name(type value)                                                                      \
+	{                                                                                                                  \
+		member_variable = value;                                                                                       \
+		return *this;                                                                                                  \
+	}
 
 namespace Kitchen
 {
@@ -60,8 +80,8 @@ class CppRecipe
 
   public:
 	CppRecipe(std::string name)
-		: m_Name(name), m_Output(), m_Version(), m_Compiler(), m_Optimization_level(), m_Libs(), m_Cflags(), m_Ldflags(),
-		  m_Files(std::nullopt){};
+		: m_Name(name), m_Output(), m_Version(), m_Compiler(), m_Optimization_level(), m_Libs(), m_Cflags(),
+		  m_Ldflags(), m_Files(std::nullopt){};
 
 	const std::string& get_name();
 
@@ -140,17 +160,13 @@ inline int start_job_sync(std::vector<std::string> command)
 
 inline void Ingredients::operator+=(const std::string& file) { (void)add_ingredients(file); }
 
-inline Ingredients& Ingredients::prefix(const std::string& prefix)
-{
-	m_Prefix = prefix;
-	return *this;
-}
+SETTER(Ingredients, prefix, const std::string&, m_Prefix);
 
-inline Ingredients& Ingredients::add_ingredients(const std::string& file)
+inline Ingredients& Ingredients::add_ingredients(const std ::string& value)
 {
-	this->m_Files.push_back(file);
+	m_Files.push_back(value);
 	return *this;
-}
+};
 
 inline std::vector<std::string> Ingredients::get_ingredients()
 {
@@ -166,18 +182,6 @@ inline std::vector<std::string> Ingredients::get_ingredients()
 		ret[i] = m_Prefix + ret[i];
 
 	return ret;
-}
-
-inline CppRecipe& CppRecipe::compiler(const std::string& compiler)
-{
-	m_Compiler = compiler;
-	return *this;
-}
-
-inline CppRecipe& CppRecipe::cpp_version(const std::string& version)
-{
-	m_Version = version;
-	return *this;
 }
 
 inline CppRecipe& CppRecipe::optimization(const Heat& level)
@@ -204,47 +208,13 @@ inline CppRecipe& CppRecipe::optimization(std::string&& level)
 	return *this;
 }
 
-inline CppRecipe& CppRecipe::cflags(Ingredients& cflags)
-{
-	m_Cflags = cflags.get_ingredients();
-	return *this;
-}
-
-inline CppRecipe& CppRecipe::cflags(Ingredients&& cflags)
-{
-	m_Cflags = cflags.get_ingredients();
-	return *this;
-}
-
-inline CppRecipe& CppRecipe::ldflags(Ingredients& flags)
-{
-	m_Ldflags = flags.get_ingredients();
-	return *this;
-}
-
-inline CppRecipe& CppRecipe::ldflags(Ingredients&& flags)
-{
-	m_Ldflags = flags.get_ingredients();
-	return *this;
-}
-
-inline CppRecipe& CppRecipe::libraries(Ingredients& libraries)
-{
-	m_Libs = libraries.get_ingredients();
-	return *this;
-}
-
-inline CppRecipe& CppRecipe::libraries(Ingredients&& libraries)
-{
-	m_Libs = libraries.get_ingredients();
-	return *this;
-}
-
-inline CppRecipe& CppRecipe::output(const std::string& name)
-{
-	m_Output = name;
-	return *this;
-}
+INGREDIENTS_SETTER(cflags, m_Cflags)
+INGREDIENTS_SETTER(ldflags, m_Ldflags)
+INGREDIENTS_SETTER(libraries, m_Libs)
+SETTER(CppRecipe, files, const Ingredients&, m_Files)
+SETTER(CppRecipe, output, const std::string&, m_Output)
+SETTER(CppRecipe, compiler, const std::string&, m_Compiler)
+SETTER(CppRecipe, cpp_version, const std::string&, m_Version)
 
 inline std::vector<std::string> CppRecipe::get_command()
 {
@@ -257,7 +227,7 @@ inline std::vector<std::string> CppRecipe::get_command()
 		command.push_back(cflag);
 
 	if (m_Version != "")
-		command.push_back("-std="+m_Version);
+		command.push_back("-std=" + m_Version);
 
 	if (m_Optimization_level != "")
 		command.push_back(m_Optimization_level);
@@ -279,12 +249,6 @@ inline std::vector<std::string> CppRecipe::get_command()
 	return command;
 }
 
-inline CppRecipe& CppRecipe::files(const Ingredients& files)
-{
-	m_Files = files;
-	return *this;
-}
-
 inline const std::string& CppRecipe::get_name() { return m_Name; }
 
 inline Chef& Chef::default_recipe(const CppRecipe& recipe)
@@ -294,9 +258,9 @@ inline Chef& Chef::default_recipe(const CppRecipe& recipe)
 	return *this;
 }
 
-inline Chef& Chef::learn_recipe(const CppRecipe& recipe)
+inline Chef& Chef::learn_recipe(const CppRecipe& value)
 {
-	m_Recipes.push_back(recipe);
+	m_Recipes.push_back(value);
 	return *this;
 }
 
