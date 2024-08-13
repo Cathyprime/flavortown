@@ -13,6 +13,10 @@
 #include <thread>
 #include <vector>
 
+#ifdef _WIN32
+#define WIN_LEAN_AND_MEAN
+#endif
+
 // internal use only
 #define __TODO(str) std::cerr << __FILE__ << ":" << __LINE__ << ":TODO -> " << str << std::endl
 #define ___TODO() std::cerr << __FILE__ << ":" << __LINE__ << ":TODO" << std::endl
@@ -148,11 +152,12 @@ inline int start_job_sync(const std::vector<std::string>& command)
 			return a + " " + b;
 		}).c_str());
 
+#ifndef _WIN32
 	if (WIFEXITED(result)) {
 		int exit_status = WEXITSTATUS(result);
 		return exit_status;
 	}
-
+#endif // _WIN32
 	return result;
 }
 
