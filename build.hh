@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <cstddef>
+#include <filesystem>
 #include <iostream>
 #include <numeric>
 #include <optional>
@@ -26,7 +28,7 @@
 #define INGREDIENTS_SETTER(method_name, member_variable)                                                               \
 	inline CppRecipe& CppRecipe::method_name(Ingredients& value)                                                       \
 	{                                                                                                                  \
-		member_variable = value.get_ingredients();                                                                     \
+		method_name(std::move(value));                                                                                 \
 		return *this;                                                                                                  \
 	}                                                                                                                  \
 	inline CppRecipe& CppRecipe::method_name(Ingredients&& value)                                                      \
@@ -70,7 +72,6 @@ class Ingredients
   public:
 	Ingredients& prefix(const std::string& prefix);
 	Ingredients& add_ingredients(const std::string& file);
-	// TODO: Ingredients& glob_source(const std::string& glob);
 	void operator+=(const std::string& file);
 
 	std::vector<std::string> get_ingredients();
@@ -80,7 +81,7 @@ class CppRecipe : public Recipe
 {
   private:
 	std::string m_Name;
-	std::string m_Output;
+	std::filesystem::path m_Output;
 	std::string m_Version;
 	std::string m_Compiler;
 	std::string m_Optimization_level;
@@ -227,11 +228,13 @@ inline std::vector<std::string> Ingredients::get_ingredients()
 {
 	std::vector<std::string> ret;
 
-	for (auto file : m_Files)
+	for (auto file_str : m_Files) {
+		auto file = std::filesystem::path(file_str).make_preferred().string();
 		if (m_Prefix != "" && file.find(m_Prefix) == 0)
 			ret.push_back(file.substr(m_Prefix.length()));
 		else
 			ret.push_back(file);
+	}
 
 	for (size_t i = 0; i < m_Files.size(); ++i)
 		ret[i] = m_Prefix + ret[i];
@@ -256,9 +259,7 @@ inline CppRecipe& CppRecipe::optimization(const Heat& level)
 
 inline CppRecipe& CppRecipe::optimization(std::string&& level)
 {
-	if (level.find("-") != 0)
-		level = "-" + level;
-
+	if (level.find("-") != 0) level = "-" + level;
 	m_Optimization_level = level;
 	return *this;
 }
@@ -267,9 +268,15 @@ INGREDIENTS_SETTER(cflags, m_Cflags)
 INGREDIENTS_SETTER(ldflags, m_Ldflags)
 INGREDIENTS_SETTER(libraries, m_Libs)
 SETTER(CppRecipe, files, const Ingredients&, m_Files)
-SETTER(CppRecipe, output, const std::string&, m_Output)
 SETTER(CppRecipe, compiler, const std::string&, m_Compiler)
 SETTER(CppRecipe, cpp_version, const std::string&, m_Version)
+
+inline CppRecipe& CppRecipe ::output(const std ::string& value)
+{
+	m_Output = value;
+	m_Output = std::move(m_Output.make_preferred());
+	return *this;
+}
 
 inline std::vector<std::string> CppRecipe::get_command()
 {
@@ -281,11 +288,9 @@ inline std::vector<std::string> CppRecipe::get_command()
 	for (const auto& cflag : m_Cflags)
 		command.push_back(cflag);
 
-	if (m_Version != "")
-		command.push_back("-std=" + m_Version);
+	if (m_Version != "") command.push_back("-std=" + m_Version);
 
-	if (m_Optimization_level != "")
-		command.push_back(m_Optimization_level);
+	if (m_Optimization_level != "") command.push_back(m_Optimization_level);
 
 	for (const auto& library : m_Libs)
 		command.push_back("-l" + library);
@@ -293,10 +298,12 @@ inline std::vector<std::string> CppRecipe::get_command()
 	if (m_Output != "") {
 		command.push_back("-o");
 		command.push_back(m_Output);
+		auto path = m_Output.remove_filename();
+		if (!std::filesystem::exists(path) && path.has_relative_path()) std::filesystem::create_directories(path);
 	}
 
-	for (const auto& file : m_Files->get_ingredients())
-		command.push_back(file);
+	for (std::filesystem::path file : m_Files->get_ingredients())
+		command.push_back(file.make_preferred());
 
 	for (const auto& ldflag : m_Ldflags)
 		command.push_back(ldflag);
@@ -381,8 +388,7 @@ inline int LineCook::cook()
 		auto command = recipe->get_command();
 		print_command(command);
 		threads.push_back(std::thread([command, &error]() {
-			if (error.load() != 0)
-				return;
+			if (error.load() != 0) return;
 
 			int status = start_job_sync(command);
 

@@ -58,7 +58,9 @@ int main(int argc, char** argv)
 	line_cook += &fib3;
 
 	if (argc > 1 && argv[1] == std::string("combined_fib")) {
-		line_cook.cook();
+		int status = line_cook.cook();
+		if (status != 0) std::exit(status);
+
 		chef.dessert("combined_fib");
 	} else if (argc > 1 && argv[1] == std::string("release"))
 		chef.dessert("release");
