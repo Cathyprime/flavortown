@@ -6,12 +6,14 @@
 #include <iostream>
 #include <numeric>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 
 #ifdef _WIN32
 #include <windows.h>
+#define WIN_LEAN_AND_MEAN
 #endif
 
 // internal use only
@@ -385,7 +387,9 @@ inline int LineCook::cook()
 			int status = start_job_sync(command);
 
 			if (status != 0) {
-				std::cerr << "Thread exited with error status: " << status << std::endl;
+				std::stringstream msg;
+				msg << "Thread exited with error status: " << status << std::endl;
+				std::cerr << msg.str();
 				error.store(status);
 			}
 		}));
