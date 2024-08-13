@@ -69,6 +69,10 @@ class Ingredients
 	std::string m_Prefix;
 
   public:
+	Ingredients() = default;
+	Ingredients(const Ingredients& rhs) = default;
+	Ingredients(Ingredients&& rhs) = default;
+	Ingredients& operator=(const Ingredients& rhs) = default;
 	Ingredients& prefix(const std::string& prefix);
 	Ingredients& add_ingredients(const std::string& file);
 	void operator+=(const std::string& file);
@@ -95,6 +99,10 @@ class CppRecipe : public Recipe
 		  m_Ldflags(), m_Files(std::nullopt){};
 
 	const std::string& get_name() override;
+
+	CppRecipe() = default;
+	CppRecipe(const CppRecipe& rhs) = default;
+	CppRecipe(CppRecipe&& rhs) = default;
 
 	CppRecipe& files(const Ingredients& files);
 	CppRecipe& output(const std::string& name);

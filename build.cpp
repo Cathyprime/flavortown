@@ -13,15 +13,18 @@ int main(int argc, char** argv)
 	cflags += "-Wall";
 	cflags += "-Werror";
 
-	Kitchen::Ingredients fib_flags{};
+	Kitchen::Ingredients fib_flags = cflags;
 	fib_flags += "-c";
+
+	auto debug_flags = cflags;
+	debug_flags += "-g";
 
 	source_files += "build.cpp";
 	fib_files1 += "fibonacci_src/fibonacci1.cpp";
 	fib_files2 += "fibonacci_src/fibonacci2.cpp";
 	fib_files3 += "fibonacci_src/fibonacci3.cpp";
 
-	auto debug = Kitchen::CppRecipe("debug").compiler(CC).files(source_files).output("TEST_OUTPUT");
+	auto debug = Kitchen::CppRecipe("debug").compiler(CC).files(source_files).output("TEST_OUTPUT").cflags(debug_flags);
 
 	auto release = Kitchen::CppRecipe("release")
 					   .compiler(CC)
