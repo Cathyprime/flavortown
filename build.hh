@@ -21,6 +21,39 @@
 
 #define TODO(...) GET_MACRO(__VA_ARGS__ __VA_OPT__(, ) __TODO, ___TODO)(__VA_ARGS__)
 
+#ifndef CC
+#define CC "clang++"
+#endif
+
+#ifdef _WIN32
+#	define EXECV(...) _execv(__VA_ARGS__)
+#else
+#	define EXECV(...) execv(__VA_ARGS__)
+#endif // _WIN32
+
+#define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
+	do {                                                                                                               \
+		std::filesystem::path source_file = std::filesystem::path(__FILE__);                                           \
+		std::string executable_name = Kitchen::get_executable_name(source_file.filename().string());                   \
+		std::filesystem::path executable = std::filesystem::path(executable_name);                                     \
+                                                                                                                       \
+		if (!std::filesystem::exists(executable) ||                                                                    \
+			std::filesystem::last_write_time(source_file) > std::filesystem::last_write_time(executable)) {            \
+			std::cout << "[INFO]: Rebuilding " << executable << "...\n";                                               \
+			std::vector<std::string> command = {CC, "-Oz", "-o", executable_name, __FILE__};                           \
+			std::string cmd_str = std::string(CC) + " -Oz -o " + executable_name + " " + std::string(__FILE__);        \
+			std::system(cmd_str.c_str());                                                                              \
+                                                                                                                       \
+			std::vector<const char*> new_argv(argc);                                                                   \
+			new_argv[0] = ("./" + executable_name).c_str();                                                            \
+			for (int i = 1; i < argc; ++i) {                                                                           \
+				new_argv[i] = argv[i];                                                                                 \
+			}                                                                                                          \
+			new_argv.push_back(nullptr);                                                                               \
+			EXECV(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                        \
+		}                                                                                                              \
+	} while (0)
+
 #define INGREDIENTS_SETTER(method_name, member_variable)                                                               \
 	inline CppRecipe& CppRecipe::method_name(Ingredients& value)                                                       \
 	{                                                                                                                  \
@@ -169,10 +202,12 @@ inline int start_job_sync(const std::vector<std::string>& command)
 			return a + " " + b;
 		}).c_str());
 
+#ifndef _WIN32
 	if (WIFEXITED(result)) {
 		int exit_status = WEXITSTATUS(result);
 		return exit_status;
 	}
+#endif // _WIN32
 	return result;
 }
 
@@ -426,26 +461,5 @@ inline std::string get_executable_name(const std::string& source_file)
 	}
 	return executable_name;
 }
-
-#define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
-	std::filesystem::path source_file = std::filesystem::path(__FILE__);                                               \
-	std::string executable_name = Kitchen::get_executable_name(source_file.filename().string());                       \
-	std::filesystem::path executable = std::filesystem::path(executable_name);                                         \
-                                                                                                                       \
-	if (!std::filesystem::exists(executable) ||                                                                        \
-		std::filesystem::last_write_time(source_file) > std::filesystem::last_write_time(executable)) {                \
-		std::cout << "Rebuilding " << source_file << "...\n";                                                          \
-		std::vector<std::string> command = {"clang++", "-Oz", "-o", executable_name, __FILE__};                        \
-		std::string cmd_str = "clang++ -Oz -o " + executable_name + " " + std::string(__FILE__);                       \
-		std::system(cmd_str.c_str());                                                                                  \
-                                                                                                                       \
-		std::vector<const char*> new_argv(argc);                                                                       \
-		new_argv[0] = ("./" + executable_name).c_str();                                                                \
-		for (int i = 1; i < argc; ++i) {                                                                               \
-			new_argv[i] = argv[i];                                                                                     \
-		}                                                                                                              \
-		new_argv.push_back(nullptr);                                                                                   \
-		execv(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                            \
-	}
 
 } // namespace Kitchen
