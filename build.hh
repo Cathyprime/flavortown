@@ -26,11 +26,16 @@
 #endif
 
 #ifdef _WIN32
-#	define EXECV(...) _execv(__VA_ARGS__)
+#define EXECV(...) _execv(__VA_ARGS__)
 #else
-#	define EXECV(...) execv(__VA_ARGS__)
+#define EXECV(...) execv(__VA_ARGS__)
 #endif // _WIN32
 
+#ifdef _WIN32
+#define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
+	do {                                                                                                               \
+	} while (0)
+#else
 #define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
 	do {                                                                                                               \
 		std::filesystem::path source_file = std::filesystem::path(__FILE__);                                           \
@@ -53,6 +58,7 @@
 			EXECV(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                        \
 		}                                                                                                              \
 	} while (0)
+#endif
 
 #define INGREDIENTS_SETTER(method_name, member_variable)                                                               \
 	inline CppRecipe& CppRecipe::method_name(Ingredients& value)                                                       \
@@ -314,7 +320,7 @@ inline std::vector<std::string> CppRecipe::get_command()
 
 	if (m_Output != "") {
 		command.push_back("-o");
-		command.push_back(m_Output);
+		command.push_back(m_Output.string());
 		auto output = m_Output;
 		auto path = output.remove_filename();
 		if (!std::filesystem::exists(path) && path.has_relative_path()) std::filesystem::create_directories(path);
@@ -333,7 +339,7 @@ inline const std::string& CppRecipe::get_name() { return m_Name; }
 
 inline std::vector<std::string> CppRecipe::input_files() { return m_Files->get_ingredients(); }
 
-inline std::string CppRecipe::output_file() { return m_Output.make_preferred(); }
+inline std::string CppRecipe::output_file() { return m_Output.make_preferred().string(); }
 
 inline Chef& Chef::default_recipe(Recipe* recipe)
 {
