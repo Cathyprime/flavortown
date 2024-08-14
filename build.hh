@@ -13,10 +13,6 @@
 #include <thread>
 #include <vector>
 
-#ifdef _WIN32
-#define WIN_LEAN_AND_MEAN
-#endif
-
 // internal use only
 #define __TODO(str) std::cerr << __FILE__ << ":" << __LINE__ << ":TODO -> " << str << std::endl
 #define ___TODO() std::cerr << __FILE__ << ":" << __LINE__ << ":TODO" << std::endl
@@ -56,7 +52,10 @@ class Recipe
   public:
 	virtual ~Recipe(){};
 	virtual std::vector<std::string> get_command() = 0;
+	virtual std::vector<std::string> input_files() = 0;
 	virtual const std::string& get_name() = 0;
+	virtual std::string output_file() = 0;
+	virtual bool should_cache() = 0;
 };
 
 class Chef;
@@ -70,8 +69,8 @@ class Ingredients
 
   public:
 	Ingredients() = default;
-	Ingredients(const Ingredients& rhs) = default;
 	Ingredients(Ingredients&& rhs) = default;
+	Ingredients(const Ingredients& rhs) = default;
 	Ingredients& operator=(const Ingredients& rhs) = default;
 	Ingredients& prefix(const std::string& prefix);
 	Ingredients& add_ingredients(const std::string& file);
@@ -83,6 +82,7 @@ class Ingredients
 class CppRecipe : public Recipe
 {
   private:
+	bool m_Cache;
 	std::string m_Name;
 	std::filesystem::path m_Output;
 	std::string m_Version;
@@ -95,8 +95,8 @@ class CppRecipe : public Recipe
 
   public:
 	CppRecipe(std::string name)
-		: m_Name(name), m_Output(), m_Version(), m_Compiler(), m_Optimization_level(), m_Libs(), m_Cflags(),
-		  m_Ldflags(), m_Files(std::nullopt){};
+		: m_Cache(false), m_Name(name), m_Output(), m_Version(), m_Compiler(), m_Optimization_level(), m_Libs(),
+		  m_Cflags(), m_Ldflags(), m_Files(std::nullopt){};
 
 	const std::string& get_name() override;
 
@@ -111,12 +111,17 @@ class CppRecipe : public Recipe
 	CppRecipe& compiler(const std::string& compiler);
 	CppRecipe& cpp_version(const std::string& version);
 	CppRecipe& cflags(Ingredients& cflags);
+	CppRecipe& cache();
+	CppRecipe& cache(bool cache);
 	CppRecipe& cflags(Ingredients&& cflags);
 	CppRecipe& ldflags(Ingredients& ldflags);
 	CppRecipe& ldflags(Ingredients&& ldflags);
 	CppRecipe& libraries(Ingredients& libraries);
 	CppRecipe& libraries(Ingredients&& libraries);
 
+	bool should_cache() override;
+	std::string output_file() override;
+	std::vector<std::string> input_files() override;
 	std::vector<std::string> get_command() override;
 };
 
@@ -125,6 +130,7 @@ class Chef
   private:
 	size_t m_Defaut_recipe_index;
 	std::vector<Recipe*> m_Recipes;
+	static int cook(Recipe* recipe);
 
   public:
 	Chef& default_recipe(Recipe* recipe);
@@ -141,6 +147,7 @@ class LineCook : public Chef
 {
   private:
 	std::vector<Recipe*> m_Recipes;
+	static int cook(Recipe* recipe);
 
   public:
 	LineCook& learn_recipe(Recipe* recipe);
@@ -160,12 +167,10 @@ inline int start_job_sync(const std::vector<std::string>& command)
 			return a + " " + b;
 		}).c_str());
 
-#ifndef _WIN32
 	if (WIFEXITED(result)) {
 		int exit_status = WEXITSTATUS(result);
 		return exit_status;
 	}
-#endif // _WIN32
 	return result;
 }
 
@@ -199,11 +204,14 @@ inline std::vector<std::string> Ingredients::get_ingredients()
 			ret.push_back(file);
 	}
 
-	for (size_t i = 0; i < m_Files.size(); ++i)
-		ret[i] = m_Prefix + ret[i];
+	if (!m_Prefix.empty())
+		for (size_t i = 0; i < m_Files.size(); ++i)
+			ret[i] = m_Prefix + ret[i];
 
 	return ret;
 }
+
+inline bool CppRecipe::should_cache() { return m_Cache; }
 
 inline CppRecipe& CppRecipe::optimization(const Heat& level)
 {
@@ -230,11 +238,18 @@ inline CppRecipe& CppRecipe::optimization(std::string&& level)
 INGREDIENTS_SETTER(cflags, m_Cflags)
 INGREDIENTS_SETTER(ldflags, m_Ldflags)
 INGREDIENTS_SETTER(libraries, m_Libs)
+SETTER(CppRecipe, cache, bool, m_Cache)
 SETTER(CppRecipe, files, const Ingredients&, m_Files)
 SETTER(CppRecipe, compiler, const std::string&, m_Compiler)
 SETTER(CppRecipe, cpp_version, const std::string&, m_Version)
 
-inline CppRecipe& CppRecipe ::output(const std ::string& value)
+inline CppRecipe& CppRecipe::cache()
+{
+	m_Cache = !m_Cache;
+	return *this;
+}
+
+inline CppRecipe& CppRecipe::output(const std::string& value)
 {
 	m_Output = value;
 	m_Output = std::move(m_Output.make_preferred());
@@ -276,6 +291,10 @@ inline std::vector<std::string> CppRecipe::get_command()
 
 inline const std::string& CppRecipe::get_name() { return m_Name; }
 
+inline std::vector<std::string> CppRecipe::input_files() { return m_Files->get_ingredients(); }
+
+inline std::string CppRecipe::output_file() { return m_Output.make_preferred(); }
+
 inline Chef& Chef::default_recipe(Recipe* recipe)
 {
 	m_Defaut_recipe_index = m_Recipes.size();
@@ -297,11 +316,33 @@ inline void Chef::operator+=(Recipe* recipe)
 		learn_recipe(recipe);
 }
 
+inline int Chef::cook(Recipe* recipe)
+{
+	bool should_rebuild = false;
+	std::filesystem::path output = recipe->output_file();
+
+	for (auto& input_file_str : recipe->input_files()) {
+		std::filesystem::path input_file = input_file_str;
+		auto in_file_mod_time = std::filesystem::last_write_time(input_file);
+		if (std::filesystem::last_write_time(output) < in_file_mod_time) {
+			should_rebuild = true;
+			break;
+		}
+	}
+
+	int status = 0;
+	if (recipe->should_cache() || should_rebuild) {
+		auto command = recipe->get_command();
+		print_command(command);
+		status = start_job_sync(std::move(command));
+	}
+
+	return status;
+}
+
 inline int Chef::cook()
 {
-	auto command = m_Recipes[m_Defaut_recipe_index]->get_command();
-	print_command(command);
-	return start_job_sync(std::move(command));
+	return cook(m_Recipes[m_Defaut_recipe_index]);
 }
 
 inline void Chef::dessert() { std::exit(cook()); }
@@ -311,11 +352,9 @@ inline int Chef::cook(const std::string& recipe_name)
 	assert((recipe_name != "" && "recipe_name cannot be empty"));
 
 	auto recipe = std::find_if(m_Recipes.begin(), m_Recipes.end(),
-							   [recipe_name](auto& recipe) { return recipe->get_name() == recipe_name; });
+							   [&recipe_name](auto& recipe) { return recipe->get_name() == recipe_name; });
 
-	auto command = recipe[0]->get_command();
-	print_command(command);
-	return start_job_sync(command);
+	return cook(recipe[0]);
 }
 
 inline void Chef::dessert(const std::string& recipe_name) { std::exit(cook(recipe_name)); }
@@ -342,6 +381,30 @@ inline void LineCook::dessert(const std::string& name)
 
 inline void LineCook::dessert() { std::exit(cook()); }
 
+inline int LineCook::cook(Recipe* recipe)
+{
+	bool should_rebuild = false;
+	std::filesystem::path output = recipe->output_file();
+
+	for (auto& input_file_str : recipe->input_files()) {
+		std::filesystem::path input_file = input_file_str;
+		auto in_file_mod_time = std::filesystem::last_write_time(input_file);
+		if (std::filesystem::last_write_time(output) < in_file_mod_time) {
+			should_rebuild = true;
+			break;
+		}
+	}
+
+	int status = 0;
+	if (recipe->should_cache() || should_rebuild) {
+		auto command = recipe->get_command();
+		print_command(command);
+		status = start_job_sync(std::move(command));
+	}
+
+	return status;
+}
+
 inline int LineCook::cook()
 {
 	std::vector<std::thread> threads;
@@ -350,11 +413,10 @@ inline int LineCook::cook()
 	for (auto& recipe : m_Recipes) {
 		auto command = recipe->get_command();
 		print_command(command);
-		threads.push_back(std::thread([command, &error]() {
+		threads.push_back(std::thread([recipe, command, &error]() {
 			if (error.load() != 0) return;
 
-			int status = start_job_sync(command);
-
+			int status = LineCook::cook(recipe);
 			if (status != 0) {
 				std::stringstream msg;
 				msg << "Thread exited with error status: " << status << std::endl;

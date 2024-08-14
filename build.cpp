@@ -4,6 +4,8 @@
 
 int main(int argc, char** argv)
 {
+	// GO_REBUILD_YOURSELF(argc, argv);
+
 	Kitchen::Ingredients source_files{};
 	Kitchen::Ingredients fib_files1{};
 	Kitchen::Ingredients fib_files2{};
@@ -34,12 +36,24 @@ int main(int argc, char** argv)
 					   .output("release")
 					   .cflags(cflags);
 
-	auto fib1 =
-		Kitchen::CppRecipe("fib1").compiler(CC).files(fib_files1).output("build_dir/fibonacci1.o").cflags(fib_flags);
-	auto fib2 =
-		Kitchen::CppRecipe("fib2").compiler(CC).files(fib_files2).output("build_dir/fibonacci2.o").cflags(fib_flags);
-	auto fib3 =
-		Kitchen::CppRecipe("fib3").compiler(CC).files(fib_files3).output("build_dir/fibonacci3.o").cflags(fib_flags);
+	auto fib1 = Kitchen::CppRecipe("fib1")
+					.compiler(CC)
+					.cache()
+					.files(fib_files1)
+					.output("build_dir/fibonacci1.o")
+					.cflags(fib_flags);
+	auto fib2 = Kitchen::CppRecipe("fib2")
+					.compiler(CC)
+					.cache()
+					.files(fib_files2)
+					.output("build_dir/fibonacci2.o")
+					.cflags(fib_flags);
+	auto fib3 = Kitchen::CppRecipe("fib3")
+					.compiler(CC)
+					.cache()
+					.files(fib_files3)
+					.output("build_dir/fibonacci3.o")
+					.cflags(fib_flags);
 
 	auto combined_files = Kitchen::Ingredients{};
 	combined_files += "build_dir/fibonacci1.o";
@@ -47,7 +61,7 @@ int main(int argc, char** argv)
 	combined_files += "build_dir/fibonacci3.o";
 	combined_files += "fibonacci_src/fibonacci_combined.cpp";
 
-	auto combined_fib = Kitchen::CppRecipe("combined_fib").compiler(CC).files(combined_files).output("bin/fib");
+	auto combined_fib = Kitchen::CppRecipe("combined_fib").compiler(CC).cache().files(combined_files).output("bin/fib");
 
 	Kitchen::Chef chef{};
 	Kitchen::LineCook line_cook{};
