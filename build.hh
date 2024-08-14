@@ -14,24 +14,12 @@
 #include <unistd.h>
 #include <vector>
 
-// internal use only
-#define __TODO(str) std::cerr << __FILE__ << ":" << __LINE__ << ":TODO -> " << str << std::endl
-#define ___TODO() std::cerr << __FILE__ << ":" << __LINE__ << ":TODO" << std::endl
-#define GET_MACRO(_0, NAME, ...) NAME
-
-#define TODO(...) GET_MACRO(__VA_ARGS__ __VA_OPT__(, ) __TODO, ___TODO)(__VA_ARGS__)
-
 #ifndef CC
 #define CC "clang++"
 #endif
 
 #ifdef _WIN32
-#define EXECV(...) _execv(__VA_ARGS__)
-#else
-#define EXECV(...) execv(__VA_ARGS__)
-#endif // _WIN32
-
-#ifdef _WIN32
+#define WIN_LEAN_AND_MEAN
 #define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
 	do {                                                                                                               \
 	} while (0)
@@ -55,7 +43,7 @@
 				new_argv[i] = argv[i];                                                                                 \
 			}                                                                                                          \
 			new_argv.push_back(nullptr);                                                                               \
-			EXECV(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                        \
+			execv(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                        \
 		}                                                                                                              \
 	} while (0)
 #endif
