@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv)
 {
-	// GO_REBUILD_YOURSELF(argc, argv);
+	GO_REBUILD_YOURSELF(argc, argv);
 
 	Kitchen::Ingredients source_files{};
 	Kitchen::Ingredients fib_files1{};
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
 	auto debug_flags = cflags;
 	debug_flags += "-g";
 
-	source_files += "build.cpp";
+	source_files += __FILE_NAME__;
 	fib_files1 += "fibonacci_src/fibonacci1.cpp";
 	fib_files2 += "fibonacci_src/fibonacci2.cpp";
 	fib_files3 += "fibonacci_src/fibonacci3.cpp";
@@ -42,12 +42,14 @@ int main(int argc, char** argv)
 					.files(fib_files1)
 					.output("build_dir/fibonacci1.o")
 					.cflags(fib_flags);
+
 	auto fib2 = Kitchen::CppRecipe("fib2")
 					.compiler(CC)
 					.cache()
 					.files(fib_files2)
 					.output("build_dir/fibonacci2.o")
 					.cflags(fib_flags);
+
 	auto fib3 = Kitchen::CppRecipe("fib3")
 					.compiler(CC)
 					.cache()
@@ -77,7 +79,6 @@ int main(int argc, char** argv)
 	if (argc > 1 && argv[1] == std::string("combined_fib")) {
 		int status = line_cook.cook();
 		if (status != 0) std::exit(status);
-
 		chef.dessert("combined_fib");
 	} else if (argc > 1 && argv[1] == std::string("release"))
 		chef.dessert("release");

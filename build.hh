@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 // internal use only
@@ -131,6 +132,7 @@ class Chef
 	size_t m_Defaut_recipe_index;
 	std::vector<Recipe*> m_Recipes;
 	static int cook(Recipe* recipe);
+	friend class LineCook;
 
   public:
 	Chef& default_recipe(Recipe* recipe);
@@ -176,10 +178,12 @@ inline int start_job_sync(const std::vector<std::string>& command)
 
 inline void print_command(std::vector<std::string>& command)
 {
-	std::cout << "[COMMAND]:";
+	std::stringstream ss{};
+	ss << "[COMMAND]:";
 	for (const auto& c : command)
-		std::cout << " " << c;
-	std::cout << std::endl;
+		ss << " " << c;
+	ss << std::endl;
+	std::cout << ss.str();
 }
 
 inline void Ingredients::operator+=(const std::string& file) { (void)add_ingredients(file); }
@@ -252,7 +256,7 @@ inline CppRecipe& CppRecipe::cache()
 inline CppRecipe& CppRecipe::output(const std::string& value)
 {
 	m_Output = value;
-	m_Output = std::move(m_Output.make_preferred());
+	m_Output = m_Output.make_preferred();
 	return *this;
 }
 
@@ -276,7 +280,8 @@ inline std::vector<std::string> CppRecipe::get_command()
 	if (m_Output != "") {
 		command.push_back("-o");
 		command.push_back(m_Output);
-		auto path = m_Output.remove_filename();
+		auto output = m_Output;
+		auto path = output.remove_filename();
 		if (!std::filesystem::exists(path) && path.has_relative_path()) std::filesystem::create_directories(path);
 	}
 
@@ -324,14 +329,21 @@ inline int Chef::cook(Recipe* recipe)
 	for (auto& input_file_str : recipe->input_files()) {
 		std::filesystem::path input_file = input_file_str;
 		auto in_file_mod_time = std::filesystem::last_write_time(input_file);
-		if (std::filesystem::last_write_time(output) < in_file_mod_time) {
+		if (!std::filesystem::exists(output) || std::filesystem::last_write_time(output) < in_file_mod_time) {
 			should_rebuild = true;
 			break;
 		}
 	}
 
 	int status = 0;
-	if (recipe->should_cache() || should_rebuild) {
+
+	if (recipe->should_cache()) {
+		if (should_rebuild) {
+			auto command = recipe->get_command();
+			print_command(command);
+			status = start_job_sync(std::move(command));
+		}
+	} else {
 		auto command = recipe->get_command();
 		print_command(command);
 		status = start_job_sync(std::move(command));
@@ -340,10 +352,7 @@ inline int Chef::cook(Recipe* recipe)
 	return status;
 }
 
-inline int Chef::cook()
-{
-	return cook(m_Recipes[m_Defaut_recipe_index]);
-}
+inline int Chef::cook() { return cook(m_Recipes[m_Defaut_recipe_index]); }
 
 inline void Chef::dessert() { std::exit(cook()); }
 
@@ -381,30 +390,6 @@ inline void LineCook::dessert(const std::string& name)
 
 inline void LineCook::dessert() { std::exit(cook()); }
 
-inline int LineCook::cook(Recipe* recipe)
-{
-	bool should_rebuild = false;
-	std::filesystem::path output = recipe->output_file();
-
-	for (auto& input_file_str : recipe->input_files()) {
-		std::filesystem::path input_file = input_file_str;
-		auto in_file_mod_time = std::filesystem::last_write_time(input_file);
-		if (std::filesystem::last_write_time(output) < in_file_mod_time) {
-			should_rebuild = true;
-			break;
-		}
-	}
-
-	int status = 0;
-	if (recipe->should_cache() || should_rebuild) {
-		auto command = recipe->get_command();
-		print_command(command);
-		status = start_job_sync(std::move(command));
-	}
-
-	return status;
-}
-
 inline int LineCook::cook()
 {
 	std::vector<std::thread> threads;
@@ -412,11 +397,10 @@ inline int LineCook::cook()
 
 	for (auto& recipe : m_Recipes) {
 		auto command = recipe->get_command();
-		print_command(command);
 		threads.push_back(std::thread([recipe, command, &error]() {
 			if (error.load() != 0) return;
 
-			int status = LineCook::cook(recipe);
+			int status = Chef::cook(recipe);
 			if (status != 0) {
 				std::stringstream msg;
 				msg << "Thread exited with error status: " << status << std::endl;
@@ -432,5 +416,36 @@ inline int LineCook::cook()
 	int status = error.load();
 	return status;
 }
+
+inline std::string get_executable_name(const std::string& source_file)
+{
+	std::string executable_name = source_file;
+	auto dot_pos = executable_name.find_last_of('.');
+	if (dot_pos != std::string::npos) {
+		executable_name = executable_name.substr(0, dot_pos); // Remove the extension
+	}
+	return executable_name;
+}
+
+#define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
+	std::filesystem::path source_file = std::filesystem::path(__FILE__);                                               \
+	std::string executable_name = Kitchen::get_executable_name(source_file.filename().string());                       \
+	std::filesystem::path executable = std::filesystem::path(executable_name);                                         \
+                                                                                                                       \
+	if (!std::filesystem::exists(executable) ||                                                                        \
+		std::filesystem::last_write_time(source_file) > std::filesystem::last_write_time(executable)) {                \
+		std::cout << "Rebuilding " << source_file << "...\n";                                                          \
+		std::vector<std::string> command = {"clang++", "-Oz", "-o", executable_name, __FILE__};                        \
+		std::string cmd_str = "clang++ -Oz -o " + executable_name + " " + std::string(__FILE__);                       \
+		std::system(cmd_str.c_str());                                                                                  \
+                                                                                                                       \
+		std::vector<const char*> new_argv(argc);                                                                       \
+		new_argv[0] = ("./" + executable_name).c_str();                                                                \
+		for (int i = 1; i < argc; ++i) {                                                                               \
+			new_argv[i] = argv[i];                                                                                     \
+		}                                                                                                              \
+		new_argv.push_back(nullptr);                                                                                   \
+		execv(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                            \
+	}
 
 } // namespace Kitchen
