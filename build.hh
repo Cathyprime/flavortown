@@ -24,6 +24,7 @@
 	do {                                                                                                               \
 	} while (0)
 #else
+#ifdef GUY_FIERI
 #define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
 	do {                                                                                                               \
 		std::filesystem::path source_file = std::filesystem::path(__FILE__);                                           \
@@ -33,8 +34,9 @@
 		if (!std::filesystem::exists(executable) ||                                                                    \
 			std::filesystem::last_write_time(source_file) > std::filesystem::last_write_time(executable)) {            \
 			std::cout << "[INFO]: Rebuilding " << executable << "...\n";                                               \
-			std::vector<std::string> command = {CC, "-Oz", "-o", executable_name, __FILE__};                           \
-			std::string cmd_str = std::string(CC) + " -Oz -o " + executable_name + " " + std::string(__FILE__);        \
+			std::vector<std::string> command = {CC, "-DGUY_FIERI", "-Oz", "-o", executable_name, __FILE__};            \
+			std::string cmd_str =                                                                                      \
+				std::string(CC) + " -DGUY_FIERI -Oz -o " + executable_name + " " + std::string(__FILE__);              \
 			std::system(cmd_str.c_str());                                                                              \
                                                                                                                        \
 			std::vector<const char*> new_argv(argc);                                                                   \
@@ -46,7 +48,29 @@
 			execv(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                        \
 		}                                                                                                              \
 	} while (0)
-#endif
+#else
+#define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
+	do {                                                                                                               \
+		std::filesystem::path source_file = std::filesystem::path(__FILE__);                                           \
+		std::string executable_name = Kitchen::get_executable_name(source_file.filename().string());                   \
+		std::filesystem::path executable = std::filesystem::path(executable_name);                                     \
+                                                                                                                       \
+		std::cout << "[INFO]: Rebuilding " << executable << " with optimizations...\n";                                \
+		std::vector<std::string> command = {CC, "-DGUY_FIERI", "-Oz", "-o", executable_name, __FILE__};                \
+		std::string cmd_str =                                                                                          \
+			std::string(CC) + " -DGUY_FIERI -Oz -o " + executable_name + " " + std::string(__FILE__);                  \
+		std::system(cmd_str.c_str());                                                                                  \
+                                                                                                                       \
+		std::vector<const char*> new_argv(argc);                                                                       \
+		new_argv[0] = ("./" + executable_name).c_str();                                                                \
+		for (int i = 1; i < argc; ++i) {                                                                               \
+			new_argv[i] = argv[i];                                                                                     \
+		}                                                                                                              \
+		new_argv.push_back(nullptr);                                                                                   \
+		execv(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                            \
+	} while (0)
+#endif // GUY_FIERI
+#endif // _WIN32
 
 #define INGREDIENTS_SETTER(method_name, member_variable)                                                               \
 	inline CppRecipe& CppRecipe::method_name(Ingredients& value)                                                       \
