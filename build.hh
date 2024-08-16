@@ -80,10 +80,8 @@ class Recipe
   public:
 	virtual ~Recipe(){};
 	virtual std::vector<std::string> get_command() = 0;
-	virtual std::vector<std::string> input_files() = 0;
 	virtual const std::string& get_name() = 0;
-	virtual std::string output_file() = 0;
-	virtual bool should_cache() = 0;
+	virtual bool rebuild_needed() = 0;
 };
 
 class Chef;
@@ -147,9 +145,7 @@ class CppRecipe : public Recipe
 	CppRecipe& libraries(Ingredients& libraries);
 	CppRecipe& libraries(Ingredients&& libraries);
 
-	bool should_cache() override;
-	std::string output_file() override;
-	std::vector<std::string> input_files() override;
+	bool rebuild_needed() override;
 	std::vector<std::string> get_command() override;
 };
 
@@ -205,7 +201,7 @@ inline int start_job_sync(const std::vector<std::string>& command)
 	return result;
 }
 
-inline void print_command(std::vector<std::string>& command)
+inline void print_command(const std::vector<std::string>& command)
 {
 	std::stringstream ss{};
 	ss << "[COMMAND]:";
@@ -243,8 +239,6 @@ inline std::vector<std::string> Ingredients::get_ingredients()
 
 	return ret;
 }
-
-inline bool CppRecipe::should_cache() { return m_Cache; }
 
 inline CppRecipe& CppRecipe::optimization(const Heat& level)
 {
@@ -325,9 +319,24 @@ inline std::vector<std::string> CppRecipe::get_command()
 
 inline const std::string& CppRecipe::get_name() { return m_Name; }
 
-inline std::vector<std::string> CppRecipe::input_files() { return m_Files->get_ingredients(); }
+inline bool CppRecipe::rebuild_needed()
+{
+	if (!m_Cache) return true;
 
-inline std::string CppRecipe::output_file() { return m_Output.make_preferred().string(); }
+	bool should_rebuild = false;
+	std::filesystem::path output = m_Output.make_preferred().string();
+
+	for (auto& input_file_str : m_Files->get_ingredients()) {
+		std::filesystem::path input_file = input_file_str;
+		auto in_file_mod_time = std::filesystem::last_write_time(input_file);
+		if (!std::filesystem::exists(output) || std::filesystem::last_write_time(output) < in_file_mod_time) {
+			should_rebuild = true;
+			break;
+		}
+	}
+
+	return should_rebuild;
+}
 
 inline Chef& Chef::default_recipe(Recipe* recipe)
 {
@@ -352,32 +361,13 @@ inline void Chef::operator+=(Recipe* recipe)
 
 inline int Chef::cook(Recipe* recipe)
 {
-	bool should_rebuild = false;
-	std::filesystem::path output = recipe->output_file();
-
-	for (auto& input_file_str : recipe->input_files()) {
-		std::filesystem::path input_file = input_file_str;
-		auto in_file_mod_time = std::filesystem::last_write_time(input_file);
-		if (!std::filesystem::exists(output) || std::filesystem::last_write_time(output) < in_file_mod_time) {
-			should_rebuild = true;
-			break;
-		}
-	}
-
 	int status = 0;
 
-	if (recipe->should_cache()) {
-		if (should_rebuild) {
-			auto command = recipe->get_command();
-			print_command(command);
-			status = start_job_sync(std::move(command));
-		}
-	} else {
+	if (recipe->rebuild_needed()) {
 		auto command = recipe->get_command();
 		print_command(command);
 		status = start_job_sync(std::move(command));
 	}
-
 	return status;
 }
 
@@ -425,26 +415,55 @@ inline int LineCook::cook()
 	std::atomic<int> error(0);
 
 	for (auto& recipe : m_Recipes) {
-		auto command = recipe->get_command();
-		threads.push_back(std::thread([recipe, command, &error]() {
-			if (error.load() != 0) return;
+		if (recipe->rebuild_needed()) {
+			auto command = recipe->get_command();
+			threads.push_back(std::thread([command, &error]() {
+				if (error.load() != 0) return;
 
-			int status = Chef::cook(recipe);
-			if (status != 0) {
-				std::stringstream msg;
-				msg << "Thread exited with error status: " << status << std::endl;
-				std::cerr << msg.str();
-				error.store(status);
-			}
-		}));
+				int status = 0;
+				print_command(command);
+				status = start_job_sync(command);
+
+				if (status != 0) {
+					std::stringstream msg;
+					msg << "Thread exited with error status: " << status << std::endl;
+					std::cerr << msg.str();
+					error.store(status);
+				}
+			}));
+		}
 	}
 
 	for (auto& thread : threads)
 		thread.join();
 
-	int status = error.load();
-	return status;
+	return error.load();
 }
+// {
+// 	std::vector<std::thread> threads;
+// 	std::atomic<int> error(0);
+//
+// 	for (auto& recipe : m_Recipes) {
+// 		auto command = recipe->get_command();
+// 		threads.push_back(std::thread([recipe, command, &error]() {
+// 			if (error.load() != 0) return;
+//
+// 			int status = Chef::cook(recipe);
+// 			if (status != 0) {
+// 				std::stringstream msg;
+// 				msg << "Thread exited with error status: " << status << std::endl;
+// 				std::cerr << msg.str();
+// 				error.store(status);
+// 			}
+// 		}));
+// 	}
+//
+// 	for (auto& thread : threads)
+// 		thread.join();
+//
+// 	int status = error.load();
+// 	return status;
+// }
 
 inline std::string get_executable_name(const std::string& source_file)
 {
