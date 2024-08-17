@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <cstdarg>
 #include <cstddef>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <numeric>
 #include <optional>
@@ -28,7 +30,7 @@
 #define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
 	do {                                                                                                               \
 		std::filesystem::path source_file = std::filesystem::path(__FILE__);                                           \
-		std::string executable_name = Kitchen::get_executable_name(source_file.filename().string());                   \
+		std::string executable_name = KitchenSink::get_executable_name(source_file.filename().string());               \
 		std::filesystem::path executable = std::filesystem::path(executable_name);                                     \
                                                                                                                        \
 		if (!std::filesystem::exists(executable) ||                                                                    \
@@ -52,7 +54,7 @@
 #define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
 	do {                                                                                                               \
 		std::filesystem::path source_file = std::filesystem::path(__FILE__);                                           \
-		std::string executable_name = Kitchen::get_executable_name(source_file.filename().string());                   \
+		std::string executable_name = KitchenSink::get_executable_name(source_file.filename().string());               \
 		std::filesystem::path executable = std::filesystem::path(executable_name);                                     \
                                                                                                                        \
 		std::cout << "[INFO]: Rebuilding " << executable << " with optimizations...\n";                                \
@@ -103,9 +105,9 @@ class Recipe
 {
   public:
 	virtual ~Recipe(){};
-	virtual std::vector<std::string> get_command() = 0;
-	virtual const std::string& get_name() = 0;
-	virtual bool rebuild_needed() = 0;
+	virtual std::vector<std::string> get_command() const = 0;
+	virtual const std::string& get_name() const = 0;
+	virtual bool rebuild_needed() const = 0;
 };
 
 class Chef;
@@ -126,7 +128,7 @@ class Ingredients
 	Ingredients& add_ingredients(const std::string& file);
 	void operator+=(const std::string& file);
 
-	std::vector<std::string> get_ingredients();
+	std::vector<std::string> get_ingredients() const;
 };
 
 class CppRecipe : public Recipe
@@ -134,7 +136,7 @@ class CppRecipe : public Recipe
   private:
 	bool m_Cache;
 	std::string m_Name;
-	std::filesystem::path m_Output;
+	std::filesystem::path m_Output; // only path separators are modified
 	std::string m_Version;
 	std::string m_Compiler;
 	std::string m_Optimization_level;
@@ -147,8 +149,6 @@ class CppRecipe : public Recipe
 	CppRecipe(std::string name)
 		: m_Cache(false), m_Name(name), m_Output(), m_Version(), m_Compiler(), m_Optimization_level(), m_Libs(),
 		  m_Cflags(), m_Ldflags(), m_Files(std::nullopt){};
-
-	const std::string& get_name() override;
 
 	CppRecipe() = default;
 	CppRecipe(const CppRecipe& rhs) = default;
@@ -169,8 +169,31 @@ class CppRecipe : public Recipe
 	CppRecipe& libraries(Ingredients& libraries);
 	CppRecipe& libraries(Ingredients&& libraries);
 
-	bool rebuild_needed() override;
-	std::vector<std::string> get_command() override;
+	bool rebuild_needed() const override;
+	const std::string& get_name() const override;
+	std::vector<std::string> get_command() const override;
+};
+
+class CommandRecipe : public Recipe
+{
+  private:
+	bool m_Cache;
+	std::string m_Name;
+	std::filesystem::path m_Output;
+	std::vector<std::string> m_Command;
+	std::function<bool(const std::string&)> m_CacheFunc;
+
+  public:
+	CommandRecipe(const std::string& name)
+		: m_Cache(false), m_Name(name), m_Output(), m_Command(), m_CacheFunc(nullptr){};
+	CommandRecipe& append(const char* command...);
+	CommandRecipe& output(const std::string& output_name);
+	CommandRecipe& cache();
+	CommandRecipe& cache_func(std::function<bool(const std::string&)> comparator);
+
+	bool rebuild_needed() const override;
+	const std::string& get_name() const override;
+	std::vector<std::string> get_command() const override;
 };
 
 class Chef
@@ -245,7 +268,7 @@ inline Ingredients& Ingredients::add_ingredients(const std ::string& value)
 	return *this;
 };
 
-inline std::vector<std::string> Ingredients::get_ingredients()
+inline std::vector<std::string> Ingredients::get_ingredients() const
 {
 	std::vector<std::string> ret;
 
@@ -307,7 +330,7 @@ inline CppRecipe& CppRecipe::output(const std::string& value)
 	return *this;
 }
 
-inline std::vector<std::string> CppRecipe::get_command()
+inline std::vector<std::string> CppRecipe::get_command() const
 {
 	assert((m_Compiler != "" && "ERROR: compiler is REQUIRED to COMPILE...\n"));
 	assert((m_Files.has_value() && "ERROR: you need to provide files to compile"));
@@ -333,7 +356,7 @@ inline std::vector<std::string> CppRecipe::get_command()
 	}
 
 	for (std::filesystem::path file : m_Files->get_ingredients())
-		command.push_back(file.make_preferred());
+		command.push_back(file);
 
 	for (const auto& ldflag : m_Ldflags)
 		command.push_back(ldflag);
@@ -341,14 +364,14 @@ inline std::vector<std::string> CppRecipe::get_command()
 	return command;
 }
 
-inline const std::string& CppRecipe::get_name() { return m_Name; }
+inline const std::string& CppRecipe::get_name() const { return m_Name; }
 
-inline bool CppRecipe::rebuild_needed()
+inline bool CppRecipe::rebuild_needed() const
 {
 	if (!m_Cache) return true;
 
 	bool should_rebuild = false;
-	std::filesystem::path output = m_Output.make_preferred().string();
+	std::filesystem::path output = m_Output.string();
 
 	for (auto& input_file_str : m_Files->get_ingredients()) {
 		std::filesystem::path input_file = input_file_str;
@@ -360,6 +383,55 @@ inline bool CppRecipe::rebuild_needed()
 	}
 
 	return should_rebuild;
+}
+
+inline CommandRecipe& CommandRecipe::append(const char* commands...)
+{
+	va_list args;
+	va_start(args, commands);
+
+	while (*commands != '\0') {
+		m_Command.push_back(commands);
+	}
+
+	va_end(args);
+	return *this;
+}
+
+inline CommandRecipe& CommandRecipe::output(const std::string& output_name)
+{
+	m_Output = output_name;
+	return *this;
+}
+
+inline CommandRecipe& CommandRecipe::cache()
+{
+	m_Cache = !m_Cache;
+	return *this;
+}
+
+inline CommandRecipe& CommandRecipe::cache_func(std::function<bool(const std::string&)> comparator)
+{
+	m_CacheFunc = comparator;
+	return *this;
+}
+
+inline bool CommandRecipe::rebuild_needed() const
+{
+	if (!m_Cache)
+		return true;
+
+	return m_CacheFunc(m_Output);
+}
+
+inline const std::string& CommandRecipe::get_name() const
+{
+	return m_Name;
+}
+
+inline std::vector<std::string> CommandRecipe::get_command() const
+{
+	return m_Command;
 }
 
 inline Chef& Chef::default_recipe(Recipe* recipe)
@@ -463,40 +535,18 @@ inline int LineCook::cook()
 
 	return error.load();
 }
-// {
-// 	std::vector<std::thread> threads;
-// 	std::atomic<int> error(0);
-//
-// 	for (auto& recipe : m_Recipes) {
-// 		auto command = recipe->get_command();
-// 		threads.push_back(std::thread([recipe, command, &error]() {
-// 			if (error.load() != 0) return;
-//
-// 			int status = Chef::cook(recipe);
-// 			if (status != 0) {
-// 				std::stringstream msg;
-// 				msg << "Thread exited with error status: " << status << std::endl;
-// 				std::cerr << msg.str();
-// 				error.store(status);
-// 			}
-// 		}));
-// 	}
-//
-// 	for (auto& thread : threads)
-// 		thread.join();
-//
-// 	int status = error.load();
-// 	return status;
-// }
+
+} // namespace Kitchen
+
+namespace KitchenSink
+{
 
 inline std::string get_executable_name(const std::string& source_file)
 {
 	std::string executable_name = source_file;
 	auto dot_pos = executable_name.find_last_of('.');
-	if (dot_pos != std::string::npos) {
-		executable_name = executable_name.substr(0, dot_pos); // Remove the extension
-	}
+	if (dot_pos != std::string::npos) executable_name = executable_name.substr(0, dot_pos);
 	return executable_name;
 }
 
-} // namespace Kitchen
+} // namespace KitchenSink
