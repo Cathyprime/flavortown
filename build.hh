@@ -12,6 +12,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unistd.h>
 #include <vector>
@@ -19,6 +20,97 @@
 #ifndef CC
 #define CC "clang++"
 #endif
+
+#ifndef DUMB_MESSAGES
+#define MESSAGES()                                                                                                     \
+	do {                                                                                                               \
+		std::cout << "[INFO]: Reconfiguring flux capacitors...\n";                                                     \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "[INFO]: Calibrating quantum vortex velocities...\n";                                             \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "[INFO]: h\n";                                                                                    \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Assembling the great wing...\n";                                                         \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Constructing foodItemStruct{}...\n";                                                     \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Acquiring Gazebo...\n";                                                                  \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[WARN]: Calculating ackermann(10, 10)";                                                          \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << " \n[INFO]: done!" << std::endl;                                                                  \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "[INFO]: Raising the ceiling by writing superhuman code for a critical feature...\n";             \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[WARN]: Computing excessively, make sure you have ice on your machine...\n";                     \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Creating backdoors...\n";                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Solving pi...\n";                                                                        \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Adding XZ Dependency (2023.2)\n";                                                        \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Connecting on linked in...\n";                                                           \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Circling back...\n";                                                                     \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Assigning story points...\n";                                                            \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO]: Middle out huffman encoding" << std::flush;                                              \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "0.24" << std::flush;                                                                             \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "1.5" << std::flush;                                                                              \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "6.6" << std::flush;                                                                              \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "\n[INFO]: Weissman score of 9.8 achieved!\n";                                                    \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[WARN]: Uploading " << std::getenv("HOME") << "/Pictures to the cloud" << std::flush;            \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "\n[INFO]: finished!" << std::endl;                                                               \
+	} while (0)
+#else
+#define MESSAGES                                                                                                       \
+	do {                                                                                                               \
+	} while (0)
+#endif // DUMB_MESSAGES
 
 #ifdef _WIN32
 #define WIN_LEAN_AND_MEAN
@@ -35,11 +127,17 @@
                                                                                                                        \
 		if (!std::filesystem::exists(executable) ||                                                                    \
 			std::filesystem::last_write_time(source_file) > std::filesystem::last_write_time(executable)) {            \
+			KitchenSink::stage(0);                                                                                     \
 			std::cout << "[INFO]: Rebuilding " << executable << "...\n";                                               \
-			std::vector<std::string> command = {CC, "-DGUY_FIERI", "-Oz", "-o", executable_name, __FILE__};            \
-			std::string cmd_str =                                                                                      \
-				std::string(CC) + " -DGUY_FIERI -Oz -o " + executable_name + " " + std::string(__FILE__);              \
-			std::system(cmd_str.c_str());                                                                              \
+			std::vector<std::string> command = {CC,	  "-DGUY_FIERI",   "-DDUMB_MESSAGES", "-Oz",                       \
+												"-o", executable_name, __FILE__};                                      \
+			std::string cmd_str = std::string(CC) + " -DGUY_FIERI -DDUMB_MESSAGES -Oz -o " + executable_name + " " +   \
+								  std::string(__FILE__);                                                               \
+			int status = std::system(cmd_str.c_str());                                                                 \
+			if (status != 0) {                                                                                         \
+				std::cout << "[ERROR]: Rebuilding " << executable << " has failed, aborting...\n";                     \
+				std::exit(status);                                                                                     \
+			}                                                                                                          \
                                                                                                                        \
 			std::vector<const char*> new_argv(argc);                                                                   \
 			new_argv[0] = ("./" + executable_name).c_str();                                                            \
@@ -47,6 +145,7 @@
 				new_argv[i] = argv[i];                                                                                 \
 			}                                                                                                          \
 			new_argv.push_back(nullptr);                                                                               \
+			std::cout << "[INFO]: Rebuild, restarting...\n";                                                           \
 			execv(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                        \
 		}                                                                                                              \
 	} while (0)
@@ -57,18 +156,25 @@
 		std::string executable_name = KitchenSink::get_executable_name(source_file.filename().string());               \
 		std::filesystem::path executable = std::filesystem::path(executable_name);                                     \
                                                                                                                        \
+		KitchenSink::stage(0);                                                                                         \
 		std::cout << "[INFO]: Rebuilding " << executable << " with optimizations...\n";                                \
-		std::vector<std::string> command = {CC, "-DGUY_FIERI", "-Oz", "-o", executable_name, __FILE__};                \
+		MESSAGES();                                                                                                    \
+		std::vector<std::string> command = {CC,	  "-DGUY_FIERI",   "-DDUMB_MESSAGES", "-Oz",                           \
+											"-o", executable_name, __FILE__};                                          \
 		std::string cmd_str =                                                                                          \
-			std::string(CC) + " -DGUY_FIERI -Oz -o " + executable_name + " " + std::string(__FILE__);                  \
-		std::system(cmd_str.c_str());                                                                                  \
-                                                                                                                       \
+			std::string(CC) + " -DGUY_FIERI -DDUMB_MESSAGES -Oz -o " + executable_name + " " + std::string(__FILE__);  \
+		int status = std::system(cmd_str.c_str());                                                                     \
+		if (status != 0) {                                                                                             \
+			std::cout << "[ERROR]: Rebuilding " << executable << " has failed, aborting...\n";                         \
+			std::exit(status);                                                                                         \
+		}                                                                                                              \
 		std::vector<const char*> new_argv(argc);                                                                       \
 		new_argv[0] = ("./" + executable_name).c_str();                                                                \
 		for (int i = 1; i < argc; ++i) {                                                                               \
 			new_argv[i] = argv[i];                                                                                     \
 		}                                                                                                              \
 		new_argv.push_back(nullptr);                                                                                   \
+		std::cout << "[INFO]: Optimized, restarting...\n";                                                             \
 		execv(("./" + executable_name).c_str(), const_cast<char* const*>(new_argv.data()));                            \
 	} while (0)
 #endif // GUY_FIERI
@@ -93,11 +199,78 @@
 		return *this;                                                                                                  \
 	}
 
-namespace Kitchen
+namespace KitchenSink
 {
 
-int start_job_sync(const std::vector<std::string>& command);
-void print_command(const std::vector<std::string>& command);
+enum class LogLevel { INFO, WARN, ERROR };
+
+inline void log(LogLevel level, const std::string_view& message)
+{
+	std::stringstream ss;
+	switch (level) {
+	case LogLevel::INFO: ss << "[INFO]: "; break;
+	case LogLevel::WARN: ss << "[WARN]: "; break;
+	case LogLevel::ERROR: ss << "[ERROR]: "; break;
+	}
+
+	ss << message << std::endl;
+	std::cout << ss.str();
+}
+
+inline int start_job_sync(const std::vector<std::string>& command)
+{
+	int result = std::system(
+		std::accumulate(std::next(command.begin()), command.end(), command[0], [](std::string a, std::string b) {
+			return a + " " + b;
+		}).c_str());
+
+#ifndef _WIN32
+	if (WIFEXITED(result)) {
+		int exit_status = WEXITSTATUS(result);
+		return exit_status;
+	}
+#endif // _WIN32
+	return result;
+}
+
+inline char* shift_args(int* argc, char*** argv) { return (*argc)--, *(*argv)++; }
+
+inline void mkdir(const std::string& directory)
+{
+	if (!std::filesystem::exists(directory)) std::filesystem::create_directory(directory);
+}
+
+inline void print_command(const std::vector<std::string>& command)
+{
+	std::stringstream ss{};
+	ss << "[COMMAND]:";
+	for (const auto& c : command)
+		ss << " " << c;
+	ss << std::endl;
+	std::cout << ss.str();
+}
+
+inline std::string get_executable_name(const std::string& source_file)
+{
+	std::string executable_name = source_file;
+	auto dot_pos = executable_name.find_last_of('.');
+	if (dot_pos != std::string::npos) executable_name = executable_name.substr(0, dot_pos);
+	return executable_name;
+}
+
+inline void stage(int stage)
+{
+	std::stringstream ss;
+	ss << "====== STAGE ";
+	ss << stage;
+	ss << " ======";
+	KitchenSink::log(KitchenSink::LogLevel::INFO, ss.str());
+}
+
+} // namespace KitchenSink
+
+namespace Kitchen
+{
 
 enum class Heat;
 
@@ -186,7 +359,7 @@ class CommandRecipe : public Recipe
   public:
 	CommandRecipe(const std::string& name)
 		: m_Cache(false), m_Name(name), m_Output(), m_Command(), m_CacheFunc(nullptr){};
-	CommandRecipe& append(const char* command...);
+	CommandRecipe& append(const std::string& command);
 	CommandRecipe& output(const std::string& output_name);
 	CommandRecipe& cache();
 	CommandRecipe& cache_func(std::function<bool(const std::string&)> comparator);
@@ -231,32 +404,6 @@ class LineCook : public Chef
 };
 
 enum class Heat { O0, O1, O2, O3, Ofast, Os, Oz, Og };
-
-inline int start_job_sync(const std::vector<std::string>& command)
-{
-	int result = std::system(
-		std::accumulate(std::next(command.begin()), command.end(), command[0], [](std::string a, std::string b) {
-			return a + " " + b;
-		}).c_str());
-
-#ifndef _WIN32
-	if (WIFEXITED(result)) {
-		int exit_status = WEXITSTATUS(result);
-		return exit_status;
-	}
-#endif // _WIN32
-	return result;
-}
-
-inline void print_command(const std::vector<std::string>& command)
-{
-	std::stringstream ss{};
-	ss << "[COMMAND]:";
-	for (const auto& c : command)
-		ss << " " << c;
-	ss << std::endl;
-	std::cout << ss.str();
-}
 
 inline void Ingredients::operator+=(const std::string& file) { (void)add_ingredients(file); }
 
@@ -385,16 +532,9 @@ inline bool CppRecipe::rebuild_needed() const
 	return should_rebuild;
 }
 
-inline CommandRecipe& CommandRecipe::append(const char* commands...)
+inline CommandRecipe& CommandRecipe::append(const std::string& command)
 {
-	va_list args;
-	va_start(args, commands);
-
-	while (*commands != '\0') {
-		m_Command.push_back(commands);
-	}
-
-	va_end(args);
+	m_Command.push_back(command);
 	return *this;
 }
 
@@ -418,21 +558,13 @@ inline CommandRecipe& CommandRecipe::cache_func(std::function<bool(const std::st
 
 inline bool CommandRecipe::rebuild_needed() const
 {
-	if (!m_Cache)
-		return true;
-
+	if (!m_Cache) return true;
 	return m_CacheFunc(m_Output);
 }
 
-inline const std::string& CommandRecipe::get_name() const
-{
-	return m_Name;
-}
+inline const std::string& CommandRecipe::get_name() const { return m_Name; }
 
-inline std::vector<std::string> CommandRecipe::get_command() const
-{
-	return m_Command;
-}
+inline std::vector<std::string> CommandRecipe::get_command() const { return m_Command; }
 
 inline Chef& Chef::default_recipe(Recipe* recipe)
 {
@@ -461,8 +593,8 @@ inline int Chef::cook(Recipe* recipe)
 
 	if (recipe->rebuild_needed()) {
 		auto command = recipe->get_command();
-		print_command(command);
-		status = start_job_sync(std::move(command));
+		KitchenSink::print_command(command);
+		status = KitchenSink::start_job_sync(std::move(command));
 	}
 	return status;
 }
@@ -517,8 +649,8 @@ inline int LineCook::cook()
 				if (error.load() != 0) return;
 
 				int status = 0;
-				print_command(command);
-				status = start_job_sync(command);
+				KitchenSink::print_command(command);
+				status = KitchenSink::start_job_sync(command);
 
 				if (status != 0) {
 					std::stringstream msg;
@@ -537,16 +669,3 @@ inline int LineCook::cook()
 }
 
 } // namespace Kitchen
-
-namespace KitchenSink
-{
-
-inline std::string get_executable_name(const std::string& source_file)
-{
-	std::string executable_name = source_file;
-	auto dot_pos = executable_name.find_last_of('.');
-	if (dot_pos != std::string::npos) executable_name = executable_name.substr(0, dot_pos);
-	return executable_name;
-}
-
-} // namespace KitchenSink
