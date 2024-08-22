@@ -344,7 +344,7 @@ class CommandRecipe : public Recipe
 	CommandRecipe() = default;
 	CommandRecipe(const std::string& name)
 		: m_Cache(false), m_Output(), m_Command(), m_CacheFunc(nullptr){};
-	CommandRecipe& push(const std::string& command);
+	CommandRecipe& push(const std::vector<std::string>& commands);
 	CommandRecipe& output(const std::string& output_name);
 	CommandRecipe& cache();
 	CommandRecipe& cache_func(std::function<bool(const std::string&)> comparator);
@@ -509,9 +509,10 @@ inline bool CppRecipe::rebuild_needed() const
 	return should_rebuild;
 }
 
-inline CommandRecipe& CommandRecipe::push(const std::string& command)
+inline CommandRecipe& CommandRecipe::push(const std::vector<std::string>& commands)
 {
-	m_Command.push_back(command);
+	for (const auto& command : commands)
+		m_Command.push_back(command);
 	return *this;
 }
 
