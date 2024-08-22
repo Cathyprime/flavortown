@@ -122,17 +122,17 @@
 #define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
 	do {                                                                                                               \
 		std::filesystem::path source_file = std::filesystem::path(__FILE__);                                           \
-		std::string executable_name = KitchenSink::get_executable_name(source_file.filename().string());               \
+		std::string executable_name = Kitchen::Sink::get_executable_name(source_file.filename().string());             \
 		std::filesystem::path executable = std::filesystem::path(executable_name);                                     \
                                                                                                                        \
-		if (!std::filesystem::exists(executable) ||                                                                    \
-			std::filesystem::last_write_time(source_file) > std::filesystem::last_write_time(executable)) {            \
-			KitchenSink::stage(0);                                                                                     \
+		if (!std::filesystem::exists(executable)                                                                       \
+			|| std::filesystem::last_write_time(source_file) > std::filesystem::last_write_time(executable)) {         \
+			Kitchen::Sink::stage(0);                                                                                   \
 			std::cout << "[INFO]: Rebuilding " << executable << "...\n";                                               \
-			std::vector<std::string> command = {CC,	  "-DGUY_FIERI",   "-DDUMB_MESSAGES", "-Oz",                       \
-												"-o", executable_name, __FILE__};                                      \
-			std::string cmd_str = std::string(CC) + " -DGUY_FIERI -DDUMB_MESSAGES -Oz -o " + executable_name + " " +   \
-								  std::string(__FILE__);                                                               \
+			std::vector<std::string> command                                                                           \
+				= {CC, "-DGUY_FIERI", "-DDUMB_MESSAGES", "-Oz", "-o", executable_name, __FILE__};                      \
+			std::string cmd_str = std::string(CC) + " -DGUY_FIERI -DDUMB_MESSAGES -Oz -o " + executable_name + " "     \
+								+ std::string(__FILE__);                                                               \
 			int status = std::system(cmd_str.c_str());                                                                 \
 			if (status != 0) {                                                                                         \
 				std::cout << "[ERROR]: Rebuilding " << executable << " has failed, aborting...\n";                     \
@@ -153,16 +153,16 @@
 #define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
 	do {                                                                                                               \
 		std::filesystem::path source_file = std::filesystem::path(__FILE__);                                           \
-		std::string executable_name = KitchenSink::get_executable_name(source_file.filename().string());               \
+		std::string executable_name = Kitchen::Sink::get_executable_name(source_file.filename().string());             \
 		std::filesystem::path executable = std::filesystem::path(executable_name);                                     \
                                                                                                                        \
-		KitchenSink::stage(0);                                                                                         \
+		Kitchen::Sink::stage(0);                                                                                       \
 		std::cout << "[INFO]: Rebuilding " << executable << " with optimizations...\n";                                \
 		MESSAGES();                                                                                                    \
-		std::vector<std::string> command = {CC,	  "-DGUY_FIERI",   "-DDUMB_MESSAGES", "-Oz",                           \
-											"-o", executable_name, __FILE__};                                          \
-		std::string cmd_str =                                                                                          \
-			std::string(CC) + " -DGUY_FIERI -DDUMB_MESSAGES -Oz -o " + executable_name + " " + std::string(__FILE__);  \
+		std::vector<std::string> command                                                                               \
+			= {CC, "-DGUY_FIERI", "-DDUMB_MESSAGES", "-Oz", "-o", executable_name, __FILE__};                          \
+		std::string cmd_str = std::string(CC) + " -DGUY_FIERI -DDUMB_MESSAGES -Oz -o " + executable_name + " "         \
+							+ std::string(__FILE__);                                                                   \
 		int status = std::system(cmd_str.c_str());                                                                     \
 		if (status != 0) {                                                                                             \
 			std::cout << "[ERROR]: Rebuilding " << executable << " has failed, aborting...\n";                         \
@@ -199,7 +199,9 @@
 		return *this;                                                                                                  \
 	}
 
-namespace KitchenSink
+namespace Kitchen
+{
+namespace Sink
 {
 
 enum class LogLevel { INFO, WARN, ERROR };
@@ -264,13 +266,10 @@ inline void stage(int stage)
 	ss << "====== STAGE ";
 	ss << stage;
 	ss << " ======";
-	KitchenSink::log(KitchenSink::LogLevel::INFO, ss.str());
+	Kitchen::Sink::log(Kitchen::Sink::LogLevel::INFO, ss.str());
 }
 
-} // namespace KitchenSink
-
-namespace Kitchen
-{
+} // namespace Sink
 
 enum class Heat;
 
@@ -309,19 +308,12 @@ class CppRecipe : public Recipe
   private:
 	bool m_Cache;
 	std::string m_Name;
-	std::filesystem::path m_Output; // only path separators are modified
-	std::string m_Version;
-	std::string m_Compiler;
-	std::string m_Optimization_level;
-	std::vector<std::string> m_Libs;
-	std::vector<std::string> m_Cflags;
-	std::vector<std::string> m_Ldflags;
+	std::filesystem::path m_Output;
 	std::optional<Ingredients> m_Files;
+	std::vector<std::string> m_Command;
 
   public:
-	CppRecipe(std::string name)
-		: m_Cache(false), m_Name(name), m_Output(), m_Version(), m_Compiler(), m_Optimization_level(), m_Libs(),
-		  m_Cflags(), m_Ldflags(), m_Files(std::nullopt){};
+	CppRecipe(std::string name) : m_Cache(false), m_Name(name), m_Output(), m_Files(std::nullopt){};
 
 	CppRecipe() = default;
 	CppRecipe(const CppRecipe& rhs) = default;
@@ -329,18 +321,15 @@ class CppRecipe : public Recipe
 
 	CppRecipe& files(const Ingredients& files);
 	CppRecipe& output(const std::string& name);
-	CppRecipe& optimization(const Heat& level);
-	CppRecipe& optimization(std::string&& level);
 	CppRecipe& compiler(const std::string& compiler);
 	CppRecipe& cpp_version(const std::string& version);
-	CppRecipe& cflags(Ingredients& cflags);
 	CppRecipe& cache();
 	CppRecipe& cache(bool cache);
-	CppRecipe& cflags(Ingredients&& cflags);
-	CppRecipe& ldflags(Ingredients& ldflags);
-	CppRecipe& ldflags(Ingredients&& ldflags);
-	CppRecipe& libraries(Ingredients& libraries);
-	CppRecipe& libraries(Ingredients&& libraries);
+
+	CppRecipe& push(const std::vector<std::string>& flags);
+
+	CppRecipe& optimization(const Heat& level);
+	CppRecipe& optimization(std::string&& level);
 
 	bool rebuild_needed() const override;
 	const std::string& get_name() const override;
@@ -436,33 +425,58 @@ inline std::vector<std::string> Ingredients::get_ingredients() const
 
 inline CppRecipe& CppRecipe::optimization(const Heat& level)
 {
+	std::string opt_level;
 	switch (level) {
-	case Heat::O0: m_Optimization_level = "-O0"; break;
-	case Heat::O1: m_Optimization_level = "-O1"; break;
-	case Heat::O2: m_Optimization_level = "-O2"; break;
-	case Heat::O3: m_Optimization_level = "-O3"; break;
-	case Heat::Ofast: m_Optimization_level = "-Ofast"; break;
-	case Heat::Os: m_Optimization_level = "-Os"; break;
-	case Heat::Oz: m_Optimization_level = "-Oz"; break;
-	case Heat::Og: m_Optimization_level = "-Og"; break;
+	case Heat::O0: opt_level = "-O0"; break;
+	case Heat::O1: opt_level = "-O1"; break;
+	case Heat::O2: opt_level = "-O2"; break;
+	case Heat::O3: opt_level = "-O3"; break;
+	case Heat::Ofast: opt_level = "-Ofast"; break;
+	case Heat::Os: opt_level = "-Os"; break;
+	case Heat::Oz: opt_level = "-Oz"; break;
+	case Heat::Og: opt_level = "-Og"; break;
 	}
+	m_Command.push_back(opt_level);
 	return *this;
 }
 
 inline CppRecipe& CppRecipe::optimization(std::string&& level)
 {
 	if (level.find("-") != 0) level = "-" + level;
-	m_Optimization_level = level;
+	m_Command.push_back(level);
 	return *this;
 }
 
-INGREDIENTS_SETTER(cflags, m_Cflags)
-INGREDIENTS_SETTER(ldflags, m_Ldflags)
-INGREDIENTS_SETTER(libraries, m_Libs)
-SETTER(CppRecipe, cache, bool, m_Cache)
-SETTER(CppRecipe, files, const Ingredients&, m_Files)
-SETTER(CppRecipe, compiler, const std::string&, m_Compiler)
-SETTER(CppRecipe, cpp_version, const std::string&, m_Version)
+#define str_pusher(method, push)                                                                                       \
+	inline CppRecipe& CppRecipe::method(const std::string& value)                                                      \
+	{                                                                                                                  \
+		m_Command.push_back(push);                                                                                     \
+		return *this;                                                                                                  \
+	}
+str_pusher(compiler, value);
+str_pusher(cpp_version, "-std=" + value);
+#undef str_pusher
+
+inline CppRecipe& CppRecipe::push(const std::vector<std::string>& flags)
+{
+	for (const auto& flag : flags)
+		m_Command.push_back(flag);
+	return *this;
+}
+
+inline CppRecipe& CppRecipe::cache(bool value)
+{
+	m_Cache = value;
+	return *this;
+}
+
+inline CppRecipe& CppRecipe::files(const Ingredients& value)
+{
+	m_Files = value;
+	for (std::filesystem::path file : m_Files->get_ingredients())
+		m_Command.push_back(file);
+	return *this;
+}
 
 inline CppRecipe& CppRecipe::cache()
 {
@@ -474,41 +488,19 @@ inline CppRecipe& CppRecipe::output(const std::string& value)
 {
 	m_Output = value;
 	m_Output = m_Output.make_preferred();
+	m_Command.push_back("-o");
+	m_Command.push_back(m_Output.string());
+	auto output = m_Output;
+	auto path = output.remove_filename();
+	if (!std::filesystem::exists(path) && path.has_relative_path()) std::filesystem::create_directories(path);
 	return *this;
 }
 
 inline std::vector<std::string> CppRecipe::get_command() const
 {
-	assert((m_Compiler != "" && "ERROR: compiler is REQUIRED to COMPILE...\n"));
 	assert((m_Files.has_value() && "ERROR: you need to provide files to compile"));
 
-	std::vector<std::string> command = {m_Compiler};
-
-	for (const auto& cflag : m_Cflags)
-		command.push_back(cflag);
-
-	if (m_Version != "") command.push_back("-std=" + m_Version);
-
-	if (m_Optimization_level != "") command.push_back(m_Optimization_level);
-
-	for (const auto& library : m_Libs)
-		command.push_back("-l" + library);
-
-	if (m_Output != "") {
-		command.push_back("-o");
-		command.push_back(m_Output.string());
-		auto output = m_Output;
-		auto path = output.remove_filename();
-		if (!std::filesystem::exists(path) && path.has_relative_path()) std::filesystem::create_directories(path);
-	}
-
-	for (std::filesystem::path file : m_Files->get_ingredients())
-		command.push_back(file);
-
-	for (const auto& ldflag : m_Ldflags)
-		command.push_back(ldflag);
-
-	return command;
+	return m_Command;
 }
 
 inline const std::string& CppRecipe::get_name() const { return m_Name; }
@@ -593,8 +585,8 @@ inline int Chef::cook(Recipe* recipe)
 
 	if (recipe->rebuild_needed()) {
 		auto command = recipe->get_command();
-		KitchenSink::print_command(command);
-		status = KitchenSink::start_job_sync(std::move(command));
+		Kitchen::Sink::print_command(command);
+		status = Kitchen::Sink::start_job_sync(std::move(command));
 	}
 	return status;
 }
@@ -649,8 +641,8 @@ inline int LineCook::cook()
 				if (error.load() != 0) return;
 
 				int status = 0;
-				KitchenSink::print_command(command);
-				status = KitchenSink::start_job_sync(command);
+				Kitchen::Sink::print_command(command);
+				status = Kitchen::Sink::start_job_sync(command);
 
 				if (status != 0) {
 					std::stringstream msg;
