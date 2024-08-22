@@ -178,10 +178,8 @@
 #endif // GUY_FIERI
 #endif // _WIN32
 
-namespace Kitchen
-{
-namespace Sink
-{
+namespace Kitchen {
+namespace Sink {
 
 enum class LogLevel { INFO, WARN, ERROR };
 
@@ -214,7 +212,10 @@ inline int start_job_sync(const std::vector<std::string>& command)
 	return result;
 }
 
-inline char* shift_args(int* argc, char*** argv) { return (*argc)--, *(*argv)++; }
+inline char* shift_args(int* argc, char*** argv)
+{
+	return (*argc)--, *(*argv)++;
+}
 
 inline void mkdir(const std::string& directory)
 {
@@ -324,7 +325,10 @@ class LineCook
 
 enum class Heat { O0, O1, O2, O3, Ofast, Os, Oz, Og };
 
-inline void Ingredients::operator+=(const std::string& file) { (void)add_ingredients(file); }
+inline void Ingredients::operator+=(const std::string& file)
+{
+	(void)add_ingredients(file);
+}
 
 inline int cook(Recipe* recipe)
 {
@@ -342,13 +346,13 @@ inline Ingredients& Ingredients::prefix(const std::string& value)
 {
 	m_Prefix = value;
 	return *this;
-};
+}
 
 inline Ingredients& Ingredients::add_ingredients(const std ::string& value)
 {
 	m_Files.push_back(value);
 	return *this;
-};
+}
 
 inline std::vector<std::string> Ingredients::get_ingredients() const
 {
@@ -474,9 +478,15 @@ inline LineCook& LineCook::learn_recipe(Recipe* recipe)
 	return *this;
 }
 
-inline void LineCook::operator+=(Recipe* recipe) { learn_recipe(std::move(recipe)); }
+inline void LineCook::operator+=(Recipe* recipe)
+{
+	learn_recipe(std::move(recipe));
+}
 
-inline void LineCook::dessert() { std::exit(cook()); }
+inline void LineCook::dessert()
+{
+	std::exit(cook());
+}
 
 inline int LineCook::cook()
 {

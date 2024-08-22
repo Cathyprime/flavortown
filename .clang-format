@@ -1,13 +1,43 @@
+BasedOnStyle: LLVM
+
 AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
+AlignArrayOfStructures: Left
+AlignConsecutiveAssignments: None
 AlignOperands: AlignAfterOperator
 AllowShortBlocksOnASingleLine: Always
 AllowShortCaseLabelsOnASingleLine: true
+AllowShortCompoundRequirementOnASingleLine: true
+AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: WithoutElse
-BreakBeforeBraces: Linux
+BinPackArguments: true
+BinPackParameters: true
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: false
+  SplitEmptyFunction: false
+  IndentBraces: false
+
+BreakBeforeBinaryOperators: true
+BreakBeforeBraces: Custom
+BreakBeforeConceptDeclarations: Always
 ColumnLimit: 120
+CompactNamespaces: true
 DerivePointerAlignment: false
+IndentRequiresClause: true
 IndentWidth: 4
 PointerAlignment: Left
+RemoveSemicolon: true
+RequiresClausePosition: OwnLine
+RequiresExpressionIndentation: OuterScope
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
 TabWidth: 4
 UseTab: Always

@@ -65,8 +65,8 @@ int main(int argc, char** argv)
 	combined_files += "build_dir/fibonacci3.o";
 	combined_files += "fibonacci_src/fibonacci_combined.cpp";
 
-	auto combined_fib =
-		Kitchen::CompilerRecipe("combined_fib").compiler(CC).cache().files(combined_files).output("bin/fib");
+	auto combined_fib
+		= Kitchen::CompilerRecipe("combined_fib").compiler(CC).cache().files(combined_files).output("bin/fib");
 
 	Kitchen::LineCook line_cook{};
 
