@@ -5,7 +5,6 @@
 #include <cstdarg>
 #include <cstddef>
 #include <filesystem>
-#include <functional>
 #include <iostream>
 #include <numeric>
 #include <optional>
@@ -179,25 +178,6 @@
 #endif // GUY_FIERI
 #endif // _WIN32
 
-#define INGREDIENTS_SETTER(method_name, member_variable)                                                               \
-	inline CppRecipe& CppRecipe::method_name(Ingredients& value)                                                       \
-	{                                                                                                                  \
-		method_name(std::move(value));                                                                                 \
-		return *this;                                                                                                  \
-	}                                                                                                                  \
-	inline CppRecipe& CppRecipe::method_name(Ingredients&& value)                                                      \
-	{                                                                                                                  \
-		member_variable = value.get_ingredients();                                                                     \
-		return *this;                                                                                                  \
-	}
-
-#define SETTER(class, method_name, type, member_variable)                                                              \
-	inline class& class ::method_name(type value)                                                                      \
-	{                                                                                                                  \
-		member_variable = value;                                                                                       \
-		return *this;                                                                                                  \
-	}
-
 namespace Kitchen
 {
 namespace Sink
@@ -280,7 +260,6 @@ class Recipe
 	virtual bool rebuild_needed() const = 0;
 };
 
-class Chef;
 class Ingredients;
 
 class Ingredients
@@ -301,7 +280,7 @@ class Ingredients
 	std::vector<std::string> get_ingredients() const;
 };
 
-class CppRecipe : public Recipe
+class CompilerRecipe : public Recipe
 {
   private:
 	bool m_Cache;
@@ -310,62 +289,27 @@ class CppRecipe : public Recipe
 	std::vector<std::string> m_Command;
 
   public:
-	CppRecipe() = default;
-	CppRecipe(std::string name) : m_Cache(false), m_Output(), m_Files(std::nullopt){};
+	CompilerRecipe() = default;
+	CompilerRecipe(std::string name) : m_Cache(false), m_Output(), m_Files(std::nullopt){};
 
-	CppRecipe(const CppRecipe& rhs) = default;
-	CppRecipe(CppRecipe&& rhs) = default;
+	CompilerRecipe(const CompilerRecipe& rhs) = default;
+	CompilerRecipe(CompilerRecipe&& rhs) = default;
 
-	CppRecipe& files(const Ingredients& files);
-	CppRecipe& output(const std::string& name);
-	CppRecipe& compiler(const std::string& compiler);
-	CppRecipe& cpp_version(const std::string& version);
-	CppRecipe& cache();
-	CppRecipe& cache(bool cache);
-
-	CppRecipe& push(const std::vector<std::string>& flags);
-
-	CppRecipe& optimization(const Heat& level);
-	CppRecipe& optimization(std::string&& level);
+	CompilerRecipe& files(const Ingredients& files);
+	CompilerRecipe& output(const std::string& name);
+	CompilerRecipe& compiler(const std::string& compiler);
+	CompilerRecipe& std_version(const std::string& version);
+	CompilerRecipe& cache();
+	CompilerRecipe& cache(bool cache);
+	CompilerRecipe& push(const std::vector<std::string>& flags);
+	CompilerRecipe& optimization(const Heat& level);
+	CompilerRecipe& optimization(std::string&& level);
 
 	bool rebuild_needed() const override;
 	std::vector<std::string> get_command() const override;
 };
 
-class CommandRecipe : public Recipe
-{
-  private:
-	bool m_Cache;
-	std::filesystem::path m_Output;
-	std::vector<std::string> m_Command;
-	std::function<bool(const std::string&)> m_CacheFunc;
-
-  public:
-	CommandRecipe() = default;
-	CommandRecipe(const std::string& name)
-		: m_Cache(false), m_Output(), m_Command(), m_CacheFunc(nullptr){};
-	CommandRecipe& push(const std::vector<std::string>& commands);
-	CommandRecipe& output(const std::string& output_name);
-	CommandRecipe& cache();
-	CommandRecipe& cache_func(std::function<bool(const std::string&)> comparator);
-
-	bool rebuild_needed() const override;
-	std::vector<std::string> get_command() const override;
-};
-
-class Chef
-{
-	friend class LineCook;
-
-  public:
-	static int cook(Recipe* recipe);
-	int cook();
-	int cook(const std::string& name);
-	void dessert();
-	void dessert(const std::string& name);
-};
-
-class LineCook : public Chef
+class LineCook
 {
   private:
 	std::vector<Recipe*> m_Recipes;
@@ -375,7 +319,6 @@ class LineCook : public Chef
 	LineCook& learn_recipe(Recipe* recipe);
 	int cook();
 	void dessert();
-	void dessert(const std::string& name);
 	void operator+=(Recipe* recipe);
 };
 
@@ -383,7 +326,23 @@ enum class Heat { O0, O1, O2, O3, Ofast, Os, Oz, Og };
 
 inline void Ingredients::operator+=(const std::string& file) { (void)add_ingredients(file); }
 
-SETTER(Ingredients, prefix, const std::string&, m_Prefix);
+inline int cook(Recipe* recipe)
+{
+	int status = 0;
+
+	if (recipe->rebuild_needed()) {
+		auto command = recipe->get_command();
+		Kitchen::Sink::print_command(command);
+		status = Kitchen::Sink::start_job_sync(std::move(command));
+	}
+	return status;
+}
+
+inline Ingredients& Ingredients::prefix(const std::string& value)
+{
+	m_Prefix = value;
+	return *this;
+};
 
 inline Ingredients& Ingredients::add_ingredients(const std ::string& value)
 {
@@ -410,7 +369,7 @@ inline std::vector<std::string> Ingredients::get_ingredients() const
 	return ret;
 }
 
-inline CppRecipe& CppRecipe::optimization(const Heat& level)
+inline CompilerRecipe& CompilerRecipe::optimization(const Heat& level)
 {
 	std::string opt_level;
 	switch (level) {
@@ -427,7 +386,7 @@ inline CppRecipe& CppRecipe::optimization(const Heat& level)
 	return *this;
 }
 
-inline CppRecipe& CppRecipe::optimization(std::string&& level)
+inline CompilerRecipe& CompilerRecipe::optimization(std::string&& level)
 {
 	if (level.find("-") != 0) level = "-" + level;
 	m_Command.push_back(level);
@@ -435,29 +394,29 @@ inline CppRecipe& CppRecipe::optimization(std::string&& level)
 }
 
 #define str_pusher(method, push)                                                                                       \
-	inline CppRecipe& CppRecipe::method(const std::string& value)                                                      \
+	inline CompilerRecipe& CompilerRecipe::method(const std::string& value)                                            \
 	{                                                                                                                  \
 		m_Command.push_back(push);                                                                                     \
 		return *this;                                                                                                  \
 	}
 str_pusher(compiler, value);
-str_pusher(cpp_version, "-std=" + value);
+str_pusher(std_version, "-std=" + value);
 #undef str_pusher
 
-inline CppRecipe& CppRecipe::push(const std::vector<std::string>& flags)
+inline CompilerRecipe& CompilerRecipe::push(const std::vector<std::string>& flags)
 {
 	for (const auto& flag : flags)
 		m_Command.push_back(flag);
 	return *this;
 }
 
-inline CppRecipe& CppRecipe::cache(bool value)
+inline CompilerRecipe& CompilerRecipe::cache(bool value)
 {
 	m_Cache = value;
 	return *this;
 }
 
-inline CppRecipe& CppRecipe::files(const Ingredients& value)
+inline CompilerRecipe& CompilerRecipe::files(const Ingredients& value)
 {
 	m_Files = value;
 	for (std::filesystem::path file : m_Files->get_ingredients())
@@ -465,13 +424,13 @@ inline CppRecipe& CppRecipe::files(const Ingredients& value)
 	return *this;
 }
 
-inline CppRecipe& CppRecipe::cache()
+inline CompilerRecipe& CompilerRecipe::cache()
 {
 	m_Cache = !m_Cache;
 	return *this;
 }
 
-inline CppRecipe& CppRecipe::output(const std::string& value)
+inline CompilerRecipe& CompilerRecipe::output(const std::string& value)
 {
 	m_Output = value;
 	m_Output = m_Output.make_preferred();
@@ -483,14 +442,14 @@ inline CppRecipe& CppRecipe::output(const std::string& value)
 	return *this;
 }
 
-inline std::vector<std::string> CppRecipe::get_command() const
+inline std::vector<std::string> CompilerRecipe::get_command() const
 {
 	assert((m_Files.has_value() && "ERROR: you need to provide files to compile"));
 
 	return m_Command;
 }
 
-inline bool CppRecipe::rebuild_needed() const
+inline bool CompilerRecipe::rebuild_needed() const
 {
 	if (!m_Cache) return true;
 
@@ -509,55 +468,6 @@ inline bool CppRecipe::rebuild_needed() const
 	return should_rebuild;
 }
 
-inline CommandRecipe& CommandRecipe::push(const std::vector<std::string>& commands)
-{
-	for (const auto& command : commands)
-		m_Command.push_back(command);
-	return *this;
-}
-
-inline CommandRecipe& CommandRecipe::output(const std::string& output_name)
-{
-	m_Output = output_name;
-	return *this;
-}
-
-inline CommandRecipe& CommandRecipe::cache()
-{
-	m_Cache = !m_Cache;
-	return *this;
-}
-
-inline CommandRecipe& CommandRecipe::cache_func(std::function<bool(const std::string&)> comparator)
-{
-	m_CacheFunc = comparator;
-	return *this;
-}
-
-inline bool CommandRecipe::rebuild_needed() const
-{
-	if (!m_Cache) return true;
-	return m_CacheFunc(m_Output);
-}
-
-inline std::vector<std::string> CommandRecipe::get_command() const { return m_Command; }
-
-inline int Chef::cook(Recipe* recipe)
-{
-	int status = 0;
-
-	if (recipe->rebuild_needed()) {
-		auto command = recipe->get_command();
-		Kitchen::Sink::print_command(command);
-		status = Kitchen::Sink::start_job_sync(std::move(command));
-	}
-	return status;
-}
-
-inline void Chef::dessert() { std::exit(cook()); }
-
-inline void Chef::dessert(const std::string& recipe_name) { std::exit(cook(recipe_name)); }
-
 inline LineCook& LineCook::learn_recipe(Recipe* recipe)
 {
 	m_Recipes.push_back(recipe);
@@ -565,12 +475,6 @@ inline LineCook& LineCook::learn_recipe(Recipe* recipe)
 }
 
 inline void LineCook::operator+=(Recipe* recipe) { learn_recipe(std::move(recipe)); }
-
-inline void LineCook::dessert(const std::string& name)
-{
-	(void)name;
-	std::exit(cook());
-}
 
 inline void LineCook::dessert() { std::exit(cook()); }
 
