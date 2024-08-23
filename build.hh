@@ -225,11 +225,10 @@ inline void mkdir(const std::string& directory)
 inline void print_command(const std::vector<std::string>& command)
 {
 	std::stringstream ss{};
-	ss << "[COMMAND]";
+	ss << "CMD:";
 	for (const auto& c : command)
 		ss << " " << c;
-	ss << std::endl;
-	std::cout << ss.str();
+	Sink::log(Sink::LogLevel::INFO, ss.str());
 }
 
 inline std::string get_executable_name(const std::string& source_file)
