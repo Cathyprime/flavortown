@@ -19,97 +19,6 @@
 #define CC "clang++"
 #endif
 
-#ifndef DUMB_MESSAGES
-#define MESSAGES()                                                                                                     \
-	do {                                                                                                               \
-		std::cout << "[INFO] Reconfiguring flux capacitors...\n";                                                      \
-		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
-		std::cout << "[INFO] Calibrating quantum vortex velocities...\n";                                              \
-		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
-		std::cout << "[INFO] h\n";                                                                                     \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Assembling the great wing...\n";                                                          \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Constructing foodItemStruct{}...\n";                                                      \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Acquiring Gazebo...\n";                                                                   \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[WARN] Calculating ackermann(10, 10)";                                                           \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
-		std::cout << " \n[INFO] done!" << std::endl;                                                                   \
-		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
-		std::cout << "[INFO] Raising the ceiling by writing superhuman code for a critical feature...\n";              \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[WARN] Computing excessively, make sure you have ice on your machine...\n";                      \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Creating backdoors...\n";                                                                 \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Solving pi...\n";                                                                         \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Adding XZ Dependency (2023.2)\n";                                                         \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Connecting on linked in...\n";                                                            \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Circling back...\n";                                                                      \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Assigning story points...\n";                                                             \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[INFO] Middle out huffman encoding" << std::flush;                                               \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "0.24" << std::flush;                                                                             \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "1.5" << std::flush;                                                                              \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "6.6" << std::flush;                                                                              \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
-		std::cout << "\n[INFO] Weissman score of 9.8 achieved!\n";                                                     \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "[WARN] Uploading " << std::getenv("HOME") << "/Pictures to the cloud" << std::flush;             \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
-		std::cout << "." << std::flush;                                                                                \
-		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
-		std::cout << "\n[INFO] finished!" << std::endl;                                                                \
-	} while (0)
-#else
-#define MESSAGES                                                                                                       \
-	do {                                                                                                               \
-	} while (0)
-#endif // DUMB_MESSAGES
-
 #ifdef _WIN32
 #define WIN_LEAN_AND_MEAN
 #define GO_REBUILD_YOURSELF(argc, argv)                                                                                \
@@ -177,6 +86,44 @@
 	} while (0)
 #endif // GUY_FIERI
 #endif // _WIN32
+
+#define GET_NON_MAIN_FILES(vec, dir, ex)                                                                               \
+	do {                                                                                                               \
+		for (const auto& entry : fs::directory_iterator(dir)) {                                                        \
+			if (entry.is_regular_file()) {                                                                             \
+				fs::path path = entry.path();                                                                          \
+				if (path.has_extension() && path.extension() == ex && path.filename() != (std::string)("main") + ex) { \
+					std::string fullname = path.filename().string();                                                   \
+					size_t lastindex = fullname.find_last_of(".");                                                     \
+					if (lastindex != std::string::npos) { vec.push_back(fullname.substr(0, lastindex)); }              \
+				}                                                                                                      \
+			}                                                                                                          \
+		}                                                                                                              \
+	} while (0)
+
+#define MAKE_HELP(...)                                                                                                 \
+	void help()                                                                                                        \
+	{                                                                                                                  \
+		std::cout << std::endl;                                                                                        \
+		for (const auto& line : {__VA_ARGS__})                                                                         \
+			std::cout << "[HELP] " + (std::string)line << std::endl;                                                   \
+	}
+
+#define EXEC_EXIT_NON_ZERO(exec, message)                                                                              \
+	do {                                                                                                               \
+		int status = exec;                                                                                             \
+		if (status != 0) {                                                                                             \
+			Sink::log(Sink::LogLevel::ERROR, message);                                                                 \
+			std::exit(status);                                                                                         \
+		}                                                                                                              \
+	} while (0)
+
+#define DIR_RANGE(dir_path) std::filesystem::directory_iterator(dir_path), std::filesystem::directory_iterator()
+
+#define DESSERT(exec) std::exit(Kitchen::Sink::start_job_sync(exec))
+#define INFO(msg) Kitchen::Sink::log(Kitchen::Sink::LogLevel::INFO, msg)
+#define WARN(msg) Kitchen::Sink::log(Kitchen::Sink::LogLevel::WARN, msg)
+#define ERROR(msg) Kitchen::Sink::log(Kitchen::Sink::LogLevel::ERROR, msg)
 
 namespace Kitchen {
 namespace Sink {
@@ -519,3 +466,94 @@ inline int LineCook::cook()
 }
 
 } // namespace Kitchen
+
+#ifndef DUMB_MESSAGES
+#define MESSAGES()                                                                                                     \
+	do {                                                                                                               \
+		std::cout << "[INFO] Reconfiguring flux capacitors...\n";                                                      \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "[INFO] Calibrating quantum vortex velocities...\n";                                              \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "[INFO] h\n";                                                                                     \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Assembling the great wing...\n";                                                          \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Constructing foodItemStruct{}...\n";                                                      \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Acquiring Gazebo...\n";                                                                   \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[WARN] Calculating ackermann(10, 10)";                                                           \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << " \n[INFO] done!" << std::endl;                                                                   \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "[INFO] Raising the ceiling by writing superhuman code for a critical feature...\n";              \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[WARN] Computing excessively, make sure you have ice on your machine...\n";                      \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Creating backdoors...\n";                                                                 \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Solving pi...\n";                                                                         \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Adding XZ Dependency (2023.2)\n";                                                         \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Connecting on linked in...\n";                                                            \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Circling back...\n";                                                                      \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Assigning story points...\n";                                                             \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[INFO] Middle out huffman encoding" << std::flush;                                               \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "0.24" << std::flush;                                                                             \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "1.5" << std::flush;                                                                              \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "6.6" << std::flush;                                                                              \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(175));                                                   \
+		std::cout << "\n[INFO] Weissman score of 9.8 achieved!\n";                                                     \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "[WARN] Uploading " << std::getenv("HOME") << "/Pictures to the cloud" << std::flush;             \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));                                                   \
+		std::cout << "." << std::flush;                                                                                \
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));                                                   \
+		std::cout << "\n[INFO] finished!" << std::endl;                                                                \
+	} while (0)
+#else
+#define MESSAGES()                                                                                                     \
+	do {                                                                                                               \
+	} while (0)
+#endif // DUMB_MESSAGES
